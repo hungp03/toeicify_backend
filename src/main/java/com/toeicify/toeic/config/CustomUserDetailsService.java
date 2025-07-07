@@ -1,6 +1,6 @@
 package com.toeicify.toeic.config;
 
-import com.toeicify.toeic.domain.User;
+import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;

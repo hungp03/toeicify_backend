@@ -1,4 +1,4 @@
-package com.toeicify.toeic.domain;
+package com.toeicify.toeic.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -37,13 +38,13 @@ public class User {
     private Integer targetScore;
 
     @Column(name = "exam_date")
-    private LocalDate examDate;
+    private Instant examDate;
 
     @Column(name = "registration_date")
-    private LocalDateTime registrationDate;
+    private Instant registrationDate;
 
     @Column(name = "last_login")
-    private LocalDateTime lastLogin;
+    private Instant lastLogin;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id")

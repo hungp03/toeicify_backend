@@ -1,7 +1,7 @@
 package com.toeicify.toeic.config;
 
-import com.toeicify.toeic.domain.Role;
-import com.toeicify.toeic.domain.User;
+import com.toeicify.toeic.entity.Role;
+import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.repository.RoleRepository;
 import com.toeicify.toeic.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +9,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Component
@@ -59,8 +59,8 @@ public class DatabaseInitializer implements CommandLineRunner {
                     .passwordHash(hashedPassword)
                     .email("admin@gmail.com")
                     .fullName("Admin User")
-                    .registrationDate(LocalDateTime.now())
-                    .lastLogin(LocalDateTime.now())
+                    .registrationDate(Instant.now())
+                    .lastLogin(Instant.now())
                     .role(adminRole)
                     .build();
 
