@@ -1,21 +1,32 @@
 package com.toeicify.toeic.dto.response.user;
 
-import lombok.*;
+import com.toeicify.toeic.entity.User;
 
-@Getter
-@Setter
-@Builder
-public class UserLoginResponse {
-    private Long userId;
-    private String username;
-    private String email;
-    private String fullName;
-    private RoleResponse role;
-    @Getter
-    @Setter
-    @Builder
-    public static class RoleResponse {
-        private String roleId;
-        private String roleName;
+public record UserLoginResponse(
+        Long userId,
+        String username,
+        String email,
+        String fullName,
+        RoleResponse role,
+        String accessToken
+) {
+    public static UserLoginResponse from(User user, String accessToken) {
+        return new UserLoginResponse(
+                user.getUserId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFullName(),
+                new RoleResponse(
+                        user.getRole().getRoleId(),
+                        user.getRole().getRoleName()
+                ),
+                accessToken
+        );
     }
+
+    public record RoleResponse(
+            String roleId,
+            String roleName
+    ) {}
 }
+

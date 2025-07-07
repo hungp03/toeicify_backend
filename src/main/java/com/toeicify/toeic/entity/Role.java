@@ -1,4 +1,4 @@
-package com.toeicify.toeic.domain;
+package com.toeicify.toeic.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

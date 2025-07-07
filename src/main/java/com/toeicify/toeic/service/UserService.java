@@ -1,9 +1,8 @@
 package com.toeicify.toeic.service;
 
-import com.toeicify.toeic.domain.User;
+import com.toeicify.toeic.entity.User;
 
-import java.util.Optional;
 
 public interface UserService {
-    User findByUsername(String username);
+    User findByUsernameOrEmail(String identifier);
 }

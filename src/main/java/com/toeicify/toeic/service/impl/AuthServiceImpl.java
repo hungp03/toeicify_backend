@@ -1,62 +1,90 @@
 package com.toeicify.toeic.service.impl;
 
 import com.toeicify.toeic.config.CustomUserDetails;
-import com.toeicify.toeic.domain.User;
+import com.toeicify.toeic.dto.response.user.UserInfoResponse;
+import com.toeicify.toeic.entity.RefreshToken;
+import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.dto.request.AuthRequest;
 import com.toeicify.toeic.dto.response.auth.AuthResponse;
 import com.toeicify.toeic.dto.response.user.UserLoginResponse;
+import com.toeicify.toeic.exception.ResourceInvalidException;
+import com.toeicify.toeic.exception.ResourceNotFoundException;
+import com.toeicify.toeic.repository.RefreshTokenRepository;
 import com.toeicify.toeic.service.AuthService;
+import com.toeicify.toeic.service.JwtService;
 import com.toeicify.toeic.service.UserService;
+import com.toeicify.toeic.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwsHeader;
-import org.springframework.security.oauth2.jwt.JwtClaimsSet;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final UserService userService;
-    private final JwtEncoder jwtEncoder;
+    private final JwtService jwtService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Override
     public AuthResponse login(AuthRequest request) {
-        final String username = request.getUsername();
-        User currentUser = userService.findByUsername(username);
+        final String identifier = request.identifier();
+        User currentUser = userService.findByUsernameOrEmail(identifier);
         checkPasswordExists(currentUser);
-        Authentication authentication = authenticate(request.getUsername(), request.getPassword());
-
+        Authentication authentication = authenticate(request.identifier(), request.password());
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-
-        String token = generateToken(userDetails);
-        UserLoginResponse.RoleResponse roleResponse = UserLoginResponse.RoleResponse.builder()
-                .roleId(currentUser.getRole().getRoleId())
-                .roleName(currentUser.getRole().getRoleName())
+        String accessToken = jwtService.generateAccessToken(userDetails);
+        UserLoginResponse userLoginResponse = UserLoginResponse.from(currentUser, accessToken);
+        String refreshToken = jwtService.generateRefreshToken(userDetails);
+        RefreshToken storedToken = RefreshToken.builder()
+                .token(refreshToken)
+                .user(currentUser)
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plus(30, ChronoUnit.DAYS))
+                .deviceInfo("Demo")
+                .revoked(false)
                 .build();
 
-        UserLoginResponse userLoginResponse = UserLoginResponse.builder()
-                .userId(currentUser.getUserId())
-                .username(currentUser.getUsername())
-                .email(currentUser.getEmail())
-                .fullName(currentUser.getFullName())
-                .role(roleResponse)
-                .build();
+        refreshTokenRepository.save(storedToken);
 
-        return AuthResponse.builder()
-                .user(userLoginResponse)
-                .accessToken(token)
-                .build();
+        return AuthResponse.of(userLoginResponse, refreshToken);
+    }
+
+    @Override
+    public AuthResponse renewToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.equals("none")) {
+            throw new ResourceNotFoundException("Please sign in first");
+        }
+        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new ResourceInvalidException("Refresh token invalid"));
+        if (storedToken.isRevoked() || storedToken.getExpiresAt().isBefore(Instant.now())) {
+            throw new ResourceInvalidException("Refresh token is revoked or expired");
+        }
+
+        User currentUser = storedToken.getUser();
+        CustomUserDetails userDetails = CustomUserDetails.fromUser(currentUser);
+        String newAccessToken = jwtService.generateAccessToken(userDetails);
+        String newRefreshToken = jwtService.generateRefreshToken(userDetails);
+        storedToken.setToken(newRefreshToken);
+        storedToken.setIssuedAt(Instant.now());
+        storedToken.setExpiresAt(Instant.now().plus(30, ChronoUnit.DAYS));
+        refreshTokenRepository.save(storedToken);
+        UserLoginResponse userLoginResponse = UserLoginResponse.from(currentUser, newAccessToken);
+        return AuthResponse.of(userLoginResponse, newRefreshToken);
+    }
+
+    @Override
+    public UserInfoResponse getUserInfo() {
+        String username = SecurityUtil.getCurrentUsername();
+        User user = userService.findByUsernameOrEmail(username);
+        return UserInfoResponse.from(user);
     }
 
     private void checkPasswordExists(User user) {
@@ -71,22 +99,6 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
-    private String generateToken(CustomUserDetails userDetails) {
-        Instant now = Instant.now();
 
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("self")
-                .issuedAt(now)
-                .expiresAt(now.plus(1, ChronoUnit.HOURS))
-                .subject(userDetails.getUsername())
-                .claim("userId", userDetails.getUser().getUserId())
-                .claim("username", userDetails.getUsername())
-                .claim("authorities", List.of("ROLE_" + userDetails.getUser().getRole().getRoleId()))
-                .build();
-
-        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
-
-        return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
-    }
 
 }

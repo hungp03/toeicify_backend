@@ -1,6 +1,6 @@
 package com.toeicify.toeic.config;
 
-import com.toeicify.toeic.domain.User;
+import com.toeicify.toeic.entity.User;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -20,6 +20,10 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(user.getRole().getRoleName()));
+    }
+
+    public static CustomUserDetails fromUser(User user) {
+        return new CustomUserDetails(user);
     }
 
     @Override

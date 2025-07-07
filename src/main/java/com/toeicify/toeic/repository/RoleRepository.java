@@ -1,6 +1,6 @@
 package com.toeicify.toeic.repository;
 
-import com.toeicify.toeic.domain.Role;
+import com.toeicify.toeic.entity.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
