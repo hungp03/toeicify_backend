@@ -1,5 +1,7 @@
 package com.toeicify.toeic.config;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -13,26 +15,42 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
+    @Value("${app.client}")
+    private String client;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     String[] whiteList = {"/",
-            "/api/auth/**",
+            "/api/auth/login",
+            "/api/auth/refresh",
             "/v3/api-docs/**",
+            "/login/oauth2/**",
+            "/oauth2/**",
+            "/login/oauth2/callback/**",
             "/swagger-ui/**",
             "/swagger-ui.html"};
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomAuthenticationEntryPoint customAuthenticationEntryPoint) throws Exception {
-        http
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http.cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(whiteList).permitAll()
-                        .requestMatchers("/api/auth/me").authenticated()
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .oauth2Login(oauth -> oauth
+                        .successHandler(oAuth2LoginSuccessHandler)
+                        .failureHandler((request, response, exception) -> {
+                            System.err.println("OAuth2 Login Error: " + exception.getMessage());
+                            System.err.println("Request URI: " + request.getRequestURI());
+                            System.err.println("Query String: " + request.getQueryString());
+                           response.sendRedirect(client + "/oauth/error");
+                        })
+                )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()).authenticationEntryPoint(customAuthenticationEntryPoint));
-
         return http.build();
     }
 

@@ -1,29 +1,28 @@
 package com.toeicify.toeic.service.impl;
 
 import com.toeicify.toeic.config.CustomUserDetails;
-import com.toeicify.toeic.dto.response.user.UserInfoResponse;
-import com.toeicify.toeic.entity.RefreshToken;
-import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.dto.request.AuthRequest;
 import com.toeicify.toeic.dto.response.auth.AuthResponse;
+import com.toeicify.toeic.dto.response.user.UserInfoResponse;
 import com.toeicify.toeic.dto.response.user.UserLoginResponse;
+import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
-import com.toeicify.toeic.repository.RefreshTokenRepository;
 import com.toeicify.toeic.service.AuthService;
 import com.toeicify.toeic.service.JwtService;
 import com.toeicify.toeic.service.UserService;
 import com.toeicify.toeic.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +30,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final UserService userService;
     private final JwtService jwtService;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Override
     public AuthResponse login(AuthRequest request) {
@@ -41,19 +40,8 @@ public class AuthServiceImpl implements AuthService {
         Authentication authentication = authenticate(request.identifier(), request.password());
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         String accessToken = jwtService.generateAccessToken(userDetails);
-        UserLoginResponse userLoginResponse = UserLoginResponse.from(currentUser, accessToken);
         String refreshToken = jwtService.generateRefreshToken(userDetails);
-        RefreshToken storedToken = RefreshToken.builder()
-                .token(refreshToken)
-                .user(currentUser)
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plus(30, ChronoUnit.DAYS))
-                .deviceInfo("Demo")
-                .revoked(false)
-                .build();
-
-        refreshTokenRepository.save(storedToken);
-
+        UserLoginResponse userLoginResponse = UserLoginResponse.from(currentUser, accessToken);
         return AuthResponse.of(userLoginResponse, refreshToken);
     }
 
@@ -62,23 +50,33 @@ public class AuthServiceImpl implements AuthService {
         if (refreshToken == null || refreshToken.equals("none")) {
             throw new ResourceNotFoundException("Please sign in first");
         }
-        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new ResourceInvalidException("Refresh token invalid"));
-        if (storedToken.isRevoked() || storedToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new ResourceInvalidException("Refresh token is revoked or expired");
-        }
 
-        User currentUser = storedToken.getUser();
-        CustomUserDetails userDetails = CustomUserDetails.fromUser(currentUser);
+        Jwt decodedRefreshToken = jwtService.decode(refreshToken);
+        String jti = decodedRefreshToken.getId();
+        String username = decodedRefreshToken.getSubject();
+
+        String blacklistKey = "rt_revoked:" + jti;
+        Boolean isBlacklisted = redisTemplate.hasKey(blacklistKey);
+        if (isBlacklisted) {
+            throw new ResourceInvalidException("Refresh token is revoked");
+        }
+        // Check expired
+        Instant now = Instant.now();
+        Instant exp = decodedRefreshToken.getExpiresAt();
+        if (exp != null && now.isAfter(exp)) {
+            throw new ResourceInvalidException("Refresh token is expired");
+        }
+        User user = userService.findByUsernameOrEmail(username);
+        CustomUserDetails userDetails = CustomUserDetails.fromUser(user);
         String newAccessToken = jwtService.generateAccessToken(userDetails);
         String newRefreshToken = jwtService.generateRefreshToken(userDetails);
-        storedToken.setToken(newRefreshToken);
-        storedToken.setIssuedAt(Instant.now());
-        storedToken.setExpiresAt(Instant.now().plus(30, ChronoUnit.DAYS));
-        refreshTokenRepository.save(storedToken);
-        UserLoginResponse userLoginResponse = UserLoginResponse.from(currentUser, newAccessToken);
+        // Thêm jti cũ vào blacklist
+        Duration ttl = Duration.between(now, exp);
+        redisTemplate.opsForValue().set(blacklistKey, "1", ttl);
+        UserLoginResponse userLoginResponse = UserLoginResponse.from(user, newAccessToken);
         return AuthResponse.of(userLoginResponse, newRefreshToken);
     }
+
 
     @Override
     public UserInfoResponse getUserInfo() {
@@ -86,6 +84,31 @@ public class AuthServiceImpl implements AuthService {
         User user = userService.findByUsernameOrEmail(username);
         return UserInfoResponse.from(user);
     }
+
+    @Override
+    public void logout(String authHeader, String refreshToken) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ") ||
+                refreshToken == null || refreshToken.equals("none")) {
+            throw new ResourceInvalidException("Please sign in first");
+        }
+        String accessToken = authHeader.substring(7);
+        blacklistToken(accessToken, "at_revoked");
+        blacklistToken(refreshToken, "rt_revoked");
+    }
+
+    private void blacklistToken(String token, String key) {
+        try {
+            Jwt decodedToken = jwtService.decode(token);
+            String refreshJti = decodedToken.getId();
+            Instant refreshExp = decodedToken.getExpiresAt();
+            if (refreshJti != null && refreshExp != null && refreshExp.isAfter(Instant.now())) {
+                Duration ttl = Duration.between(Instant.now(), refreshExp);
+                redisTemplate.opsForValue().set(key + ":" + refreshJti, "1", ttl);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
 
     private void checkPasswordExists(User user) {
         if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
@@ -98,7 +121,4 @@ public class AuthServiceImpl implements AuthService {
                 new UsernamePasswordAuthenticationToken(username, password)
         );
     }
-
-
-
 }

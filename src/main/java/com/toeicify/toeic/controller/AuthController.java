@@ -8,6 +8,7 @@ import com.toeicify.toeic.service.AuthService;
 import com.toeicify.toeic.util.annotation.ApiMessage;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+
 
     @PostMapping("login")
     @ApiMessage("Login")
@@ -36,6 +38,7 @@ public class AuthController {
     }
 
     @PostMapping("refresh")
+    @ApiMessage("Refresh token")
     public ResponseEntity<UserLoginResponse> refresh(@CookieValue(name = "refresh_token", defaultValue = "none") String refreshToken) {
         AuthResponse authResponse = authService.renewToken(refreshToken);
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", authResponse.refreshToken())
@@ -52,8 +55,29 @@ public class AuthController {
     }
 
     @GetMapping("me")
+    @ApiMessage("Get current user")
     public ResponseEntity<UserInfoResponse> me() {
         return ResponseEntity.ok(authService.getUserInfo());
     }
+
+    @PostMapping("logout")
+    @ApiMessage("Logout")
+    public ResponseEntity<Void> logout(
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
+            @CookieValue(name = "refresh_token", defaultValue = "none") String refreshToken) {
+        authService.logout(authHeader, refreshToken);
+        ResponseCookie deleteCookie = ResponseCookie.from("refresh_token", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("None")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .build();
+    }
+
 }
 
