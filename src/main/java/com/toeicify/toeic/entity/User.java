@@ -7,8 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -19,13 +17,14 @@ import java.time.LocalDateTime;
 public class User {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id", nullable = false, length = 64)
     private Long userId;
 
     @Column(name = "username", nullable = false, unique = true, length = 100)
     private String username;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
+    @Column(name = "password_hash")
     private String passwordHash;
 
     @Column(name = "email", unique = true, length = 150)
@@ -42,9 +41,6 @@ public class User {
 
     @Column(name = "registration_date")
     private Instant registrationDate;
-
-    @Column(name = "last_login")
-    private Instant lastLogin;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id")

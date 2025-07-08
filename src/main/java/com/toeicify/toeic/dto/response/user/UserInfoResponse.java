@@ -13,9 +13,9 @@ public record UserInfoResponse(
         String username,
         String email,
         String fullName,
+        Integer targetScore,
         String roleId,
         String roleName,
-        Instant lastLogin,
         Instant registrationDate
 ) {
     public static UserInfoResponse from(User user) {
@@ -24,9 +24,9 @@ public record UserInfoResponse(
                 user.getUsername(),
                 user.getEmail(),
                 user.getFullName(),
+                user.getTargetScore(),
                 user.getRole() != null ? user.getRole().getRoleId() : null,
                 user.getRole() != null ? user.getRole().getRoleName() : null,
-                user.getLastLogin(),
                 user.getRegistrationDate()
         );
     }

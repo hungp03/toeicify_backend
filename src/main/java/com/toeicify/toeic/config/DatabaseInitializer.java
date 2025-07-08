@@ -54,13 +54,11 @@ public class DatabaseInitializer implements CommandLineRunner {
             String hashedPassword = new BCryptPasswordEncoder().encode(rawPassword);
 
             User adminUser = User.builder()
-                    .userId(1L)
                     .username("admin")
                     .passwordHash(hashedPassword)
                     .email("admin@gmail.com")
                     .fullName("Admin User")
                     .registrationDate(Instant.now())
-                    .lastLogin(Instant.now())
                     .role(adminRole)
                     .build();
 

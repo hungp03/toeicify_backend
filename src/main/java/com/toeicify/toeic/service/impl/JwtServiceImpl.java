@@ -19,6 +19,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class JwtServiceImpl implements JwtService {
     private final JwtEncoder jwtEncoder;
+    private final JwtDecoder jwtDecoder;
+
+    @Override
+    public Jwt decode(String token) {
+        return jwtDecoder.decode(token);
+    }
+
     @Override
     public String generateAccessToken(CustomUserDetails userDetails) {
         Instant now = Instant.now();
@@ -47,7 +54,7 @@ public class JwtServiceImpl implements JwtService {
                 .issuedAt(now)
                 .expiresAt(now.plus(30, ChronoUnit.DAYS))
                 .subject(userDetails.getUsername())
-                .id(UUID.randomUUID().toString()) // jti
+                .id(UUID.randomUUID().toString())
                 .build();
 
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
