@@ -1,6 +1,6 @@
 package com.toeicify.toeic.service;
 
-import com.toeicify.toeic.dto.request.AuthRequest;
+import com.toeicify.toeic.dto.request.auth.AuthRequest;
 import com.toeicify.toeic.dto.response.auth.AuthResponse;
 import com.toeicify.toeic.dto.response.user.UserInfoResponse;
 

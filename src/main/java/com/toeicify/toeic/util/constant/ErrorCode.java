@@ -10,4 +10,5 @@ public interface ErrorCode {
     int UNAUTHORIZED = 4;
     int RESOURCE_INVALID = 5;
     int RESOURCE_ALREADY_EXISTS = 6;
+    int METHOD_NOT_VALID = 7;
 }

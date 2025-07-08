@@ -5,13 +5,12 @@ import com.toeicify.toeic.service.TokenBlacklistService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.jwt.*;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -34,20 +33,26 @@ public class JwtConfig {
 
     @Bean
     public JwtDecoder jwtDecoder(TokenBlacklistService tokenBlacklistService) {
-        NimbusJwtDecoder decoder = NimbusJwtDecoder
-                .withSecretKey(getSecretKey())
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(getSecretKey())
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
 
-        decoder.setJwtValidator(token -> {
-            String jti = token.getId();
-            if (jti == null || tokenBlacklistService.isBlacklisted(jti)) {
+        // Timestamp validator
+        OAuth2TokenValidator<Jwt> timestampValidator = new JwtTimestampValidator();
+
+        // Blacklist validator
+        OAuth2TokenValidator<Jwt> blacklistValidator = token -> {
+            if (tokenBlacklistService.isBlacklisted(token.getTokenValue())) {
                 return OAuth2TokenValidatorResult.failure(
                         new OAuth2Error("invalid_token", "Token is blacklisted", null)
                 );
             }
             return OAuth2TokenValidatorResult.success();
-        });
+        };
+
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                timestampValidator, blacklistValidator
+        ));
 
         return decoder;
     }
