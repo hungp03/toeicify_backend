@@ -16,6 +16,7 @@ public record UserInfoResponse(
         Integer targetScore,
         String roleId,
         String roleName,
+        Instant examDate,
         Instant registrationDate
 ) {
     public static UserInfoResponse from(User user) {
@@ -27,6 +28,7 @@ public record UserInfoResponse(
                 user.getTargetScore(),
                 user.getRole() != null ? user.getRole().getRoleId() : null,
                 user.getRole() != null ? user.getRole().getRoleName() : null,
+                user.getExamDate(),
                 user.getRegistrationDate()
         );
     }

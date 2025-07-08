@@ -61,11 +61,11 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                     .maxAge(Duration.ofDays(30))
                     .build();
             response.setHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-            String redirectUrl = client + "/oauth/success?token=" + accessToken;
+            String redirectUrl = client + "/authentication/success?token=" + accessToken;
             response.sendRedirect(redirectUrl);
 
         } catch (Exception e) {
-            response.sendRedirect(client + "/oauth/error");
+            response.sendRedirect(client + "/authentication/error");
         }
     }
 }

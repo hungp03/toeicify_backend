@@ -34,7 +34,7 @@ public class JwtServiceImpl implements JwtService {
                 .issuer("self")
                 .issuedAt(now)
                 .expiresAt(now.plus(1, ChronoUnit.HOURS)) // 1 hour
-                .subject(userDetails.getUsername())
+                .subject(String.valueOf(userDetails.getUser().getUserId()))
                 .id(UUID.randomUUID().toString()) // jti
                 .claim("userId", userDetails.getUser().getUserId())
                 .claim("username", userDetails.getUsername())
@@ -53,7 +53,7 @@ public class JwtServiceImpl implements JwtService {
                 .issuer("self")
                 .issuedAt(now)
                 .expiresAt(now.plus(30, ChronoUnit.DAYS))
-                .subject(userDetails.getUsername())
+                .subject(String.valueOf(userDetails.getUser().getUserId()))
                 .id(UUID.randomUUID().toString())
                 .build();
 

@@ -44,10 +44,10 @@ public class SecurityConfig {
                 .oauth2Login(oauth -> oauth
                         .successHandler(oAuth2LoginSuccessHandler)
                         .failureHandler((request, response, exception) -> {
-                            System.err.println("OAuth2 Login Error: " + exception.getMessage());
-                            System.err.println("Request URI: " + request.getRequestURI());
-                            System.err.println("Query String: " + request.getQueryString());
-                           response.sendRedirect(client + "/oauth/error");
+//                            System.err.println("OAuth2 Login Error: " + exception.getMessage());
+//                            System.err.println("Request URI: " + request.getRequestURI());
+//                            System.err.println("Query String: " + request.getQueryString());
+                           response.sendRedirect(client + "/authentication/error");
                         })
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()).authenticationEntryPoint(customAuthenticationEntryPoint));

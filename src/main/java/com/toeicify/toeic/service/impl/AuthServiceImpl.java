@@ -1,7 +1,7 @@
 package com.toeicify.toeic.service.impl;
 
 import com.toeicify.toeic.config.CustomUserDetails;
-import com.toeicify.toeic.dto.request.AuthRequest;
+import com.toeicify.toeic.dto.request.auth.AuthRequest;
 import com.toeicify.toeic.dto.response.auth.AuthResponse;
 import com.toeicify.toeic.dto.response.user.UserInfoResponse;
 import com.toeicify.toeic.dto.response.user.UserLoginResponse;
@@ -80,8 +80,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserInfoResponse getUserInfo() {
-        String username = SecurityUtil.getCurrentUsername();
-        User user = userService.findByUsernameOrEmail(username);
+        Long uid = SecurityUtil.getCurrentUserId();
+        User user = userService.findById(uid);
         return UserInfoResponse.from(user);
     }
 

@@ -1,12 +1,12 @@
 package com.toeicify.toeic.controller;
 
-import com.toeicify.toeic.dto.request.AuthRequest;
+import com.toeicify.toeic.dto.request.auth.AuthRequest;
 import com.toeicify.toeic.dto.response.auth.AuthResponse;
 import com.toeicify.toeic.dto.response.user.UserInfoResponse;
 import com.toeicify.toeic.dto.response.user.UserLoginResponse;
 import com.toeicify.toeic.service.AuthService;
 import com.toeicify.toeic.util.annotation.ApiMessage;
-import lombok.Getter;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -22,7 +22,7 @@ public class AuthController {
 
     @PostMapping("login")
     @ApiMessage("Login")
-    public ResponseEntity<UserLoginResponse> login(@RequestBody AuthRequest authRequest) {
+    public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody AuthRequest authRequest) {
         AuthResponse authResponse = authService.login(authRequest);
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", authResponse.refreshToken())
                 .httpOnly(true)
