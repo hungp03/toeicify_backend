@@ -1,9 +1,7 @@
 package com.toeicify.toeic.dto.request.user;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import com.toeicify.toeic.util.constant.ValidationPatterns;
+import jakarta.validation.constraints.*;
 
 import java.time.Instant;
 
@@ -11,15 +9,22 @@ import java.time.Instant;
  * Created by hungpham on 7/9/2025
  */
 public record UpdateUserRequest(
-        @Pattern(regexp = "^[a-zA-ZÀ-ỹ\\s]+$", message = "Full name must not contain numbers or special characters")
+        @Pattern(regexp = ValidationPatterns.FULL_NAME_PATTERN, message = "Full name must not contain numbers or special characters")
         @NotBlank(message = "Full name is required")
         String fullName,
-        @Pattern(regexp = "^\\S+$", message = "Username must not contain spaces")
-        @NotBlank(message = "Username is required")
+        @NotNull(message = "Username cannot be null")
+        @Pattern(regexp = ValidationPatterns.USERNAME_PATTERN, message = "Username cannot contain special characters or spaces, only -, _, ., and + are allowed")
         String username,
-        @Email(message = "Email is not valid")
-        @NotBlank(message = "Email is required")
+        @NotNull(message = "Email cannot be null")
+        @Email(message = "Invalid email format")
+        @Pattern(regexp = ValidationPatterns.EMAIL_PATTERN, message = "Email cannot contain special characters or spaces, only -, _, ., and + are allowed")
         String email,
+        @FutureOrPresent(message = "Exam date must be today or in the future")
         Instant examDate,
-        Integer targetScore  ) {
+        @Min(value = 0, message = "Target score must be between 0 and 990")
+        @Max(value = 990, message = "Target score must be between 0 and 990")
+        Integer targetScore ) {
+        public boolean isTargetScoreValid() {
+                return targetScore != null && targetScore % 5 == 0;
+        }
 }

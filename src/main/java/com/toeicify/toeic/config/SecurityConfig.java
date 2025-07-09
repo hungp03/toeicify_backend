@@ -24,6 +24,11 @@ public class SecurityConfig {
     String[] whiteList = {"/",
             "/api/auth/login",
             "/api/auth/refresh",
+            "/api/auth/register",
+            "/api/auth/register/**",
+            "api/auth/forgot-password",
+            "/api/auth/verify-otp",
+            "/api/auth/reset-password",
             "/v3/api-docs/**",
             "/login/oauth2/**",
             "/oauth2/**",
@@ -47,7 +52,7 @@ public class SecurityConfig {
 //                            System.err.println("OAuth2 Login Error: " + exception.getMessage());
 //                            System.err.println("Request URI: " + request.getRequestURI());
 //                            System.err.println("Query String: " + request.getQueryString());
-                           response.sendRedirect(client + "/authentication/error");
+                           response.sendRedirect(client + "/authentication/error?isLogin=false");
                         })
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()).authenticationEntryPoint(customAuthenticationEntryPoint));
