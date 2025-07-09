@@ -1,6 +1,7 @@
 package com.toeicify.toeic.config;
 
 import com.toeicify.toeic.entity.User;
+import com.toeicify.toeic.service.CustomOauth2Service;
 import com.toeicify.toeic.service.JwtService;
 import com.toeicify.toeic.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,7 +28,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     @Value("${app.client}")
     private String client;
     private final JwtService jwtService;
-    private final UserService userService;
+    private final CustomOauth2Service customOauth2Service;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -47,7 +48,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                 socialId = oAuth2User.getAttribute("id");
             }
 
-            User user = userService.processOAuth2User(email, name, socialId, provider);
+            User user = customOauth2Service.processOAuth2User(email, name, socialId, provider);
             CustomUserDetails userDetails = CustomUserDetails.fromUser(user);
 
             String accessToken = jwtService.generateAccessToken(userDetails);
@@ -65,7 +66,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             response.sendRedirect(redirectUrl);
 
         } catch (Exception e) {
-            response.sendRedirect(client + "/authentication/error");
+            response.sendRedirect(client + "/authentication/error?isLogin=false");
         }
     }
+
+
 }

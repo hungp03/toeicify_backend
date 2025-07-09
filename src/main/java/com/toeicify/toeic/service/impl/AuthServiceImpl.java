@@ -1,28 +1,38 @@
 package com.toeicify.toeic.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toeicify.toeic.config.CustomUserDetails;
 import com.toeicify.toeic.dto.request.auth.AuthRequest;
+import com.toeicify.toeic.dto.request.auth.RegisterRequest;
+import com.toeicify.toeic.dto.request.auth.ResetPasswordRequest;
 import com.toeicify.toeic.dto.response.auth.AuthResponse;
+import com.toeicify.toeic.dto.response.auth.OtpVerificationResponse;
 import com.toeicify.toeic.dto.response.user.UserInfoResponse;
 import com.toeicify.toeic.dto.response.user.UserLoginResponse;
 import com.toeicify.toeic.entity.User;
+import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
 import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
-import com.toeicify.toeic.service.AuthService;
-import com.toeicify.toeic.service.JwtService;
-import com.toeicify.toeic.service.UserService;
+import com.toeicify.toeic.service.*;
 import com.toeicify.toeic.util.SecurityUtil;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +41,10 @@ public class AuthServiceImpl implements AuthService {
     private final UserService userService;
     private final JwtService jwtService;
     private final RedisTemplate<String, String> redisTemplate;
+    private final EmailService emailService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final PasswordEncoder passwordEncoder;
+    private final IdentifyCodeService identifyCodeService;
 
     @Override
     public AuthResponse login(AuthRequest request) {
@@ -53,7 +67,7 @@ public class AuthServiceImpl implements AuthService {
 
         Jwt decodedRefreshToken = jwtService.decode(refreshToken);
         String jti = decodedRefreshToken.getId();
-        String username = decodedRefreshToken.getSubject();
+        Long uid = Long.valueOf(decodedRefreshToken.getSubject());
 
         String blacklistKey = "rt_revoked:" + jti;
         Boolean isBlacklisted = redisTemplate.hasKey(blacklistKey);
@@ -66,7 +80,7 @@ public class AuthServiceImpl implements AuthService {
         if (exp != null && now.isAfter(exp)) {
             throw new ResourceInvalidException("Refresh token is expired");
         }
-        User user = userService.findByUsernameOrEmail(username);
+        User user = userService.findById(uid);
         CustomUserDetails userDetails = CustomUserDetails.fromUser(user);
         String newAccessToken = jwtService.generateAccessToken(userDetails);
         String newRefreshToken = jwtService.generateRefreshToken(userDetails);
@@ -94,6 +108,93 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = authHeader.substring(7);
         blacklistToken(accessToken, "at_revoked");
         blacklistToken(refreshToken, "rt_revoked");
+    }
+
+    @Override
+    public void registerUser(RegisterRequest request) {
+        if (!Objects.equals(request.password(), request.confirmPassword())) {
+            throw new ResourceInvalidException("Passwords do not match.");
+        }
+
+        if (userService.existsByEmail(request.email())) {
+            throw new ResourceAlreadyExistsException("User with this email already exists.");
+        }
+
+        if (userService.existsByUsername(request.username())) {
+            throw new ResourceAlreadyExistsException("User with this username already exists.");
+        }
+        String encodedPassword = passwordEncoder.encode(request.password());
+        RegisterRequest requestWithEncodedPassword = new RegisterRequest(
+                request.fullName(),
+                request.username(),
+                request.email(),
+                encodedPassword,
+                encodedPassword
+        );
+        String token = jwtService.generateRegisterToken(request.username(), request.email());
+        try {
+            String keyPrefix = "REG:";
+            String redisKey = keyPrefix + request.email();
+            String userJson = objectMapper.writeValueAsString(requestWithEncodedPassword);
+            redisTemplate.opsForValue().set(redisKey, userJson, 10, TimeUnit.MINUTES);
+            emailService.sendRegisterVerificationEmail(request.email(), token, "register");
+        } catch (Exception e) {
+            throw new RuntimeException("Error during registration", e);
+        }
+    }
+
+    @Override
+    public boolean verifyRegisterToken(String token) throws JsonProcessingException {
+        Map<String, String> userInfo = jwtService.verifyRegisterToken(token);
+        String email = userInfo.get("email");
+        String username = userInfo.get("username");
+        String keyPrefix = "REG:";
+        String redisKey = keyPrefix + email;
+        String userJson = redisTemplate.opsForValue().get(redisKey);
+        if (userJson != null) {
+            RegisterRequest redisUser = objectMapper.readValue(userJson, RegisterRequest.class);
+            if (redisUser.username().equals(username)) {
+                userService.register(redisUser);
+                redisTemplate.delete(email);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void forgotPassword(String email) {
+        if (!userService.existsByEmail(email)) {
+            throw new ResourceNotFoundException("Email " + email + " not found");
+        }
+        String otp = identifyCodeService.generateOTP(email);
+        emailService.sendForgotPasswordEmail(email, otp, "forgotPassword");
+    }
+
+    @Override
+    @Transactional
+    public OtpVerificationResponse verifyOtp(String email, String inputOtp) {
+        boolean validOTP = identifyCodeService.validateCode("OTP:" + email, inputOtp);
+        if (!validOTP) {
+            throw new ResourceInvalidException("OTP is not valid or expired");
+        }
+        identifyCodeService.deleteCode("OTP:" + email);
+        String identifyCode = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set("RESET:" + email, identifyCode, 3, TimeUnit.MINUTES);
+        return new OtpVerificationResponse(identifyCode);
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordRequest request) {
+        boolean isValidCode = identifyCodeService.validateCode("RESET:" + request.email(), request.identifyCode());
+        if (!isValidCode) {
+            throw new ResourceInvalidException("Identify code is not valid");
+        }
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new ResourceInvalidException("Confirm passwords do not match.");
+        }
+        identifyCodeService.deleteCode("RESET:" + request.email());
+        userService.resetPassword(request.email(), request.newPassword());
     }
 
     private void blacklistToken(String token, String key) {

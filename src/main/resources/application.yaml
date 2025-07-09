@@ -38,7 +38,17 @@ spring:
       username: ${REDIS_USERNAME}
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
-
+  mail:
+    username: ${MAIL_USERNAME}
+    port: ${MAIL_PORT}
+    properties:
+      mail:
+        smtp:
+          starttls:
+            enable: "true"
+          auth: "true"
+    host: ${MAIL_HOST}
+    password: ${MAIL_PASSWORD}
 jwt:
   secret-key: ${JWT_SECRET_KEY}
 server:
