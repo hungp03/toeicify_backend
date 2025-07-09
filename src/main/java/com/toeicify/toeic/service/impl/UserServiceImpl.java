@@ -15,6 +15,7 @@ import com.toeicify.toeic.service.UserService;
 import com.toeicify.toeic.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -109,7 +110,7 @@ public class UserServiceImpl implements UserService {
             throw new ResourceInvalidException("You account did not have password. Please login with Google or reset password.");
         }
         if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
-            throw new ResourceInvalidException("Old password does not match.");
+            throw new BadCredentialsException("Old password does not match.");
         }
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);

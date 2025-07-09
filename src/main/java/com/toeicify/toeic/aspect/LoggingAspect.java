@@ -31,16 +31,16 @@ public class LoggingAspect {
         logAfterReturning(joinPoint,"Service");
     }
 
-//    @AfterThrowing(value = "execution(* com.toeicify.toeic.util.exception..*(..))", throwing = "ex")
-//    public void logAfterThrowing(JoinPoint joinPoint, Exception ex) {
-//        String clientIp = getClientIp();
-//        String method = joinPoint.getSignature().toShortString();
-//
-//        String logMessage = String.format("[ERROR] Method: %s | IP: %s | Exception: %s", method, clientIp, ex.getMessage());
-//
-//        log.error(logMessage);
-//        saveLogToFile(logMessage);
-//    }
+    @AfterThrowing(value = "execution(* com.toeicify.toeic.exception..*(..))", throwing = "ex")
+    public void logAfterThrowing(JoinPoint joinPoint, Exception ex) {
+        String clientIp = getClientIp();
+        String method = joinPoint.getSignature().toShortString();
+
+        String logMessage = String.format("[ERROR] Method: %s | IP: %s | Exception: %s", method, clientIp, ex.getMessage());
+
+        log.error(logMessage);
+        saveLogToFile(logMessage);
+    }
 
     @Around("execution(* com.toeicify.toeic.controller..*(..))")
     public Object logExecutionTimeController(ProceedingJoinPoint joinPoint) throws Throwable {
