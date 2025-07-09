@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -26,7 +27,9 @@ public class SecurityConfig {
             "/api/auth/refresh",
             "/api/auth/register",
             "/api/auth/register/**",
-            "api/auth/forgot-password",
+            "/api/auth/forgot-password",
+            "api/exam-categories",
+            "api/exam-categories/**",
             "/api/auth/verify-otp",
             "/api/auth/reset-password",
             "/v3/api-docs/**",
@@ -42,6 +45,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(whiteList).permitAll()
+                        .requestMatchers(HttpMethod.POST, "api/exam-categories").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "api/exam-categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "api/exam-categories/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)

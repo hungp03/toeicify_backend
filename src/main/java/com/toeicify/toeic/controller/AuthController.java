@@ -89,7 +89,7 @@ public class AuthController {
     @ApiMessage("Send mail register")
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest registerRequest) {
         authService.registerUser(registerRequest);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping("register/verify")
