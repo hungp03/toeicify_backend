@@ -9,4 +9,6 @@ import java.io.IOException;
  */
 public interface MediaService {
     String uploadFile(MultipartFile file, String folder) throws IOException;
+
+    String generateDownloadUrl(String key);
 }
