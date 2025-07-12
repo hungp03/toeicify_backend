@@ -91,3 +91,5 @@ cloud:
   bucket: ${S3_BUCKET}
   public-url: ${S3_PUBLIC_URL}
 
+proxy:
+  base-url: ${PROXY_BASE_URL}

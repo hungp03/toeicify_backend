@@ -1,6 +1,8 @@
 package com.toeicify.toeic.controller;
 
 import com.toeicify.toeic.service.MediaService;
+import com.toeicify.toeic.util.annotation.ApiMessage;
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,8 +26,17 @@ public class MediaController {
     }
 
     @GetMapping("/signed-url")
+    @ApiMessage("Generate public url")
     public ResponseEntity<String> getSignedUrl(@RequestParam String key) {
-        String url = mediaService.generateDownloadUrl(key);
+        String url = mediaService.getSignedUrl(key);
         return ResponseEntity.ok(url);
+    }
+
+    @Hidden
+    @DeleteMapping("/{filename}")
+    @ApiMessage("Delete file")
+    public ResponseEntity<Void> deleteFile(@PathVariable String filename) {
+        mediaService.deleteFile(filename);
+        return ResponseEntity.ok().build();
     }
 }
