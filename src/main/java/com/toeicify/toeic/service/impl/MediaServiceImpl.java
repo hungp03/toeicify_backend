@@ -1,5 +1,6 @@
 package com.toeicify.toeic.service.impl;
 
+import com.toeicify.toeic.exception.CannotDeleteException;
 import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.service.MediaService;
 import lombok.RequiredArgsConstructor;
@@ -8,8 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
@@ -25,13 +28,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MediaServiceImpl implements MediaService {
     private final S3Client s3Client;
-    private final S3Presigner s3Presigner;
+//    private final S3Presigner s3Presigner;
 
-//    @Value("${cloud.public-url}")
-//    private String publicUrl;
+    @Value("${cloud.public-url}")
+    private String publicUrl;
 
     @Value("${cloud.bucket}")
     private String bucket;
+
 
     private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
             "image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp",
@@ -68,22 +72,36 @@ public class MediaServiceImpl implements MediaService {
                 .build();
 
         s3Client.putObject(req, RequestBody.fromBytes(file.getBytes()));
-
-//        return String.join("/", publicUrl.replaceAll("/+$", ""), key);
-        return key;
+        return String.join("/", publicUrl.replaceAll("/+$", ""), key);
+//        return key;
     }
+
+//    @Override
+//    public String getSignedUrl(String key) {
+//        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+//                .bucket(bucket)
+//                .key(key)
+//                .build();
+//
+//        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+//                .signatureDuration(Duration.ofDays(7))
+//                .getObjectRequest(getObjectRequest)
+//                .build();
+//
+//        return s3Presigner.presignGetObject(presignRequest).url().toString();
+//    }
+
     @Override
-    public String generateDownloadUrl(String key) {
-        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .build();
+    public void deleteFile(String key) {
+        try {
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build();
 
-        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofDays(7))
-                .getObjectRequest(getObjectRequest)
-                .build();
-
-        return s3Presigner.presignGetObject(presignRequest).url().toString();
+            s3Client.deleteObject(deleteRequest);
+        } catch (S3Exception e) {
+            throw new CannotDeleteException("Failed to delete file from S3");
+        }
     }
 }

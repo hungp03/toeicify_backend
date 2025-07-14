@@ -58,11 +58,13 @@ spring:
     properties:
       mail:
         smtp:
+          auth: true
           starttls:
-            enable: "true"
-          auth: "true"
+            required: true
+            enable: true
     host: ${MAIL_HOST}
     password: ${MAIL_PASSWORD}
+    protocol: smtp
   main:
     banner-mode: off
   servlet:
@@ -90,4 +92,7 @@ cloud:
   secretKey: ${S3_SECRET_KEY}
   bucket: ${S3_BUCKET}
   public-url: ${S3_PUBLIC_URL}
-
+  signing:
+    enabled: false
+proxy:
+  base-url: ${PROXY_BASE_URL}

@@ -1,6 +1,7 @@
 package com.toeicify.toeic.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -14,6 +15,7 @@ import java.net.URI;
  * Created by hungpham on 7/11/2025
  */
 @Configuration
+@ConditionalOnProperty(name = "cloud.signing.enabled", havingValue = "true", matchIfMissing = false)
 public class S3PresignerConfig {
 
     @Value("${cloud.endpoint}")

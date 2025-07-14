@@ -14,7 +14,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id", nullable = false, length = 64)
@@ -51,12 +50,22 @@ public class User {
     @Column(name = "social_media_provider", length = 100)
     private String socialMediaProvider;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<Blog> blogs;
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StudySchedule> studySchedules;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FlashcardList> flashcardLists;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserAttempt> userAttempts;
 
     @PrePersist
     public void handleBeforeCreate() {
-        this.registrationDate = Instant.now();
+        isActive = Boolean.TRUE;
+        registrationDate = Instant.now();
     }
 }
 

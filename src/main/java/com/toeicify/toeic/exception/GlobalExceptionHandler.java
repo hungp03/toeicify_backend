@@ -62,6 +62,11 @@ public class GlobalExceptionHandler {
                 ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(CannotDeleteException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCannotDeleteException(CannotDeleteException ex) {
+        return buildResponse(ErrorCode.CANNOT_DELETE, "Cannot delete resource", ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler({Exception.class})
     public ResponseEntity<ApiResponse<Object>> handleException(RuntimeException ex) {
         return buildResponse(ErrorCode.EXCEPTION, "Server Error", ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
