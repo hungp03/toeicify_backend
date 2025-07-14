@@ -10,7 +10,7 @@ import java.io.IOException;
 public interface MediaService {
     String uploadFile(MultipartFile file, String folder) throws IOException;
 
-    String getSignedUrl(String key);
+//    String getSignedUrl(String key);
 
     void deleteFile(String key);
 }

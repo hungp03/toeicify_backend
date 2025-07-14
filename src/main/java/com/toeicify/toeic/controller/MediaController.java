@@ -25,12 +25,12 @@ public class MediaController {
         return ResponseEntity.ok(key);
     }
 
-    @GetMapping("/signed-url")
-    @ApiMessage("Generate public url")
-    public ResponseEntity<String> getSignedUrl(@RequestParam String key) {
-        String url = mediaService.getSignedUrl(key);
-        return ResponseEntity.ok(url);
-    }
+//    @GetMapping("/signed-url")
+//    @ApiMessage("Generate public url")
+//    public ResponseEntity<String> getSignedUrl(@RequestParam String key) {
+//        String url = mediaService.getSignedUrl(key);
+//        return ResponseEntity.ok(url);
+//    }
 
     @Hidden
     @DeleteMapping("/{filename}")

@@ -14,7 +14,6 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class Role {
-
     @Id
     @Column(name = "role_id", nullable = false, length = 64)
     private String roleId;

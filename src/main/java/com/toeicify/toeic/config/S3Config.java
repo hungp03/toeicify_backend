@@ -26,9 +26,6 @@ public class S3Config {
     @Value("${cloud.secretKey}")
     private String secretKey;
 
-    @Value("${cloud.region:us-west-004}")
-    private String region;
-
     @Bean
     public S3Client s3Client() {
         S3Configuration serviceConfig = S3Configuration.builder()
@@ -38,8 +35,7 @@ public class S3Config {
 
         return S3Client.builder()
                 .httpClientBuilder(ApacheHttpClient.builder())
-//                .region(Region.of("auto"))
-                .region(Region.of(region)) //backblaze
+                .region(Region.AP_SOUTHEAST_1)
                 .endpointOverride(URI.create(endpoint))
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKey, secretKey)))

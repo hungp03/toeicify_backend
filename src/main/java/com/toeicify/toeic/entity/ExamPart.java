@@ -20,7 +20,6 @@ public class ExamPart {
     @Column(name = "part_id")
     private Long partId;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exam_id", nullable = false)
     private Exam exam;

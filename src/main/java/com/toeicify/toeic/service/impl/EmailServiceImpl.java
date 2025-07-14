@@ -28,12 +28,13 @@ public class EmailServiceImpl implements EmailService {
         try {
             MimeMessageHelper message = new MimeMessageHelper(mimeMessage,
                     isMultipart, StandardCharsets.UTF_8.name());
+            message.setFrom("noreplymail@toeicify.online");
             message.setTo(to);
             message.setSubject(subject);
             message.setText(content, isHtml);
             this.javaMailSender.send(mimeMessage);
-        } catch (MailException | MessagingException ignored) {
-
+        } catch (MailException | MessagingException e) {
+            System.out.println(e.getMessage());
         }
     }
 

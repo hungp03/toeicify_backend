@@ -28,16 +28,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MediaServiceImpl implements MediaService {
     private final S3Client s3Client;
-    private final S3Presigner s3Presigner;
+//    private final S3Presigner s3Presigner;
 
-//    @Value("${cloud.public-url}")
-//    private String publicUrl;
+    @Value("${cloud.public-url}")
+    private String publicUrl;
 
     @Value("${cloud.bucket}")
     private String bucket;
 
-    @Value("${proxy.base-url}")
-    private String proxyUrl;
 
     private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
             "image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp",
@@ -74,8 +72,8 @@ public class MediaServiceImpl implements MediaService {
                 .build();
 
         s3Client.putObject(req, RequestBody.fromBytes(file.getBytes()));
-//        return String.join("/", publicUrl.replaceAll("/+$", ""), key);
-        return key;
+        return String.join("/", publicUrl.replaceAll("/+$", ""), key);
+//        return key;
     }
 
 //    @Override
@@ -92,21 +90,6 @@ public class MediaServiceImpl implements MediaService {
 //
 //        return s3Presigner.presignGetObject(presignRequest).url().toString();
 //    }
-
-    @Override
-    public String getSignedUrl(String key) {
-        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .build();
-        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofDays(7))
-                .getObjectRequest(getObjectRequest)
-                .build();
-        String signedUrl = s3Presigner.presignGetObject(presignRequest).url().toString();
-        String queryString = signedUrl.contains("?") ? signedUrl.substring(signedUrl.indexOf("?")) : "";
-        return proxyUrl + key + queryString;
-    }
 
     @Override
     public void deleteFile(String key) {
