@@ -1,5 +1,6 @@
 package com.toeicify.toeic.mapper;
 
+import com.toeicify.toeic.dto.response.exam.ExamListItemResponse;
 import com.toeicify.toeic.dto.response.exam.ExamResponse;
 import com.toeicify.toeic.dto.response.exampart.ExamPartResponse;
 import com.toeicify.toeic.entity.Exam;
@@ -26,4 +27,8 @@ public interface ExamMapper {
     ExamPartResponse toExamPartResponse(ExamPart part);
 
     List<ExamPartResponse> toExamPartResponseList(List<ExamPart> parts);
+
+    @Mapping(source = "exam.examCategory.categoryName", target = "categoryName")
+    @Mapping(target = "totalParts", expression = "java(exam.getExamParts() != null ? exam.getExamParts().size() : 0)")
+    ExamListItemResponse toExamListItemResponse(Exam exam);
 }
