@@ -39,7 +39,7 @@ spring:
 #          batch_size: 60
 #          order_inserts: true
 #          order_updates: true
-        format_sql: true
+#        format_sql: true
   data:
     web:
       pageable:
@@ -94,5 +94,3 @@ cloud:
   public-url: ${S3_PUBLIC_URL}
   signing:
     enabled: false
-proxy:
-  base-url: ${PROXY_BASE_URL}

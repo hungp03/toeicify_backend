@@ -1,6 +1,7 @@
 package com.toeicify.toeic.repository;
 
 import com.toeicify.toeic.entity.Exam;
+import com.toeicify.toeic.repository.custom.ExamRepositoryCustom;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * Created by hungpham on 7/10/2025
  */
 @Repository
-public interface ExamRepository extends JpaRepository<Exam, Long> {
+public interface ExamRepository extends JpaRepository<Exam, Long>, ExamRepositoryCustom {
     Page<Exam> findByExamNameContainingIgnoreCaseAndExamCategory_CategoryId(String keyword, Long categoryId,
                                                                             Pageable pageable);
     Page<Exam> findByExamNameContainingIgnoreCase(String keyword,

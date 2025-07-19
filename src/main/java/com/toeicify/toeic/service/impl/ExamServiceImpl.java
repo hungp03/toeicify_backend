@@ -3,6 +3,7 @@ package com.toeicify.toeic.service.impl;
 import com.toeicify.toeic.dto.request.exam.ExamRequest;
 import com.toeicify.toeic.dto.request.exampart.ExamPartRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
+import com.toeicify.toeic.dto.response.exam.ExamListItemResponse;
 import com.toeicify.toeic.dto.response.exam.ExamResponse;
 import com.toeicify.toeic.entity.Exam;
 import com.toeicify.toeic.entity.ExamCategory;
@@ -82,30 +83,12 @@ public class ExamServiceImpl implements ExamService {
 
     @Transactional(readOnly = true)
     @Override
-    public PaginationResponse getAllExams(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Exam> examPage = examRepository.findAll(pageable);
-        Page<ExamResponse> pageResponse = examPage.map(examMapper::toExamResponse);
-        return PaginationResponse.from(pageResponse, pageable);
-    }
-
-    @Transactional(readOnly = true)
-    @Override
     public PaginationResponse searchExams(String keyword, Long categoryId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Exam> exams;
-        if (keyword != null && categoryId != null) {
-            exams = examRepository.findByExamNameContainingIgnoreCaseAndExamCategory_CategoryId(keyword, categoryId, pageable);
-        } else if (keyword != null) {
-            exams = examRepository.findByExamNameContainingIgnoreCase(keyword, pageable);
-        } else if (categoryId != null) {
-            exams = examRepository.findByExamCategory_CategoryId(categoryId, pageable);
-        } else {
-            exams = examRepository.findAll(pageable);
-        }
-        Page<ExamResponse> pageResponse = exams.map(examMapper::toExamResponse);
-        return PaginationResponse.from(pageResponse, pageable);
+        Page<ExamListItemResponse> pageResult = examRepository.searchExams(keyword, categoryId, pageable);
+        return PaginationResponse.from(pageResult, pageable);
     }
+
     @Transactional
     @Override
     public ExamResponse updateExam(Long id, ExamRequest request) {

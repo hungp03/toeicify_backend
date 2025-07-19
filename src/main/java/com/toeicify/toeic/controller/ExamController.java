@@ -39,14 +39,6 @@ public class ExamController {
     }
 
     @GetMapping
-    public ResponseEntity<PaginationResponse> getAllExams(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        return ResponseEntity.ok(examService.getAllExams(page, size));
-    }
-
-    @GetMapping("/search")
     public ResponseEntity<PaginationResponse> searchExams(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
