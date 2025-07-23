@@ -8,8 +8,10 @@ import com.toeicify.toeic.entity.User;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-
-
+import com.toeicify.toeic.dto.response.PaginationResponse;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 public interface UserService {
     User findByUsernameOrEmail(String identifier);
     User register(RegisterRequest request);
@@ -19,4 +21,6 @@ public interface UserService {
     boolean existsByEmail(String email);
     void changePassword(UpdatePasswordRequest request);
     void resetPassword(String email, String newPassword);
+    Page<User> getUsers(String searchTerm, Pageable pageable);
+    void updateUser(User user);
 }

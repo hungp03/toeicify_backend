@@ -19,6 +19,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -121,5 +123,19 @@ public class UserServiceImpl implements UserService {
 
     private User findByEmail(String email) {
         return userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    @Override
+    public Page<User> getUsers(String searchTerm, Pageable pageable) {
+        if (searchTerm == null || searchTerm.isEmpty()) {
+            return userRepository.findAll(pageable);
+        }
+        return userRepository.findByUsernameOrEmail(searchTerm, pageable);
+    }
+
+    @Override
+    @Transactional
+    public void updateUser(User user) {
+        userRepository.save(user);
     }
 }
