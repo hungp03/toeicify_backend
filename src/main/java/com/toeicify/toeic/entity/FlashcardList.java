@@ -30,6 +30,9 @@ public class FlashcardList {
 
     private Instant createdAt;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @OneToMany(mappedBy = "list", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Flashcard> flashcards;
 }
