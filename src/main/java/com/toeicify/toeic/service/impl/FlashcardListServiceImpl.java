@@ -3,28 +3,32 @@ package com.toeicify.toeic.service.impl;
 import com.toeicify.toeic.dto.request.flashcard.CreateFlashcardListRequest;
 import com.toeicify.toeic.dto.request.flashcard.FlashcardCreateRequest;
 import com.toeicify.toeic.dto.request.flashcard.FlashcardListUpdateRequest;
+import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.flashcard.FlashcardListDetailResponse;
 import com.toeicify.toeic.dto.response.flashcard.FlashcardListResponse;
 import com.toeicify.toeic.entity.Flashcard;
 import com.toeicify.toeic.entity.FlashcardList;
-import com.toeicify.toeic.entity.FlashcardProgress;
 import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.mapper.FlashcardListMapper;
 import com.toeicify.toeic.repository.FlashcardListRepository;
-import com.toeicify.toeic.repository.FlashcardProgressRepository;
 import com.toeicify.toeic.repository.FlashcardRepository;
 import com.toeicify.toeic.repository.UserRepository;
 import com.toeicify.toeic.service.FlashcardListService;
+import com.toeicify.toeic.service.UserService;
+import com.toeicify.toeic.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import org.springframework.data.crossstore.ChangeSetPersister;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,33 +36,49 @@ import java.util.stream.Collectors;
 public class FlashcardListServiceImpl implements FlashcardListService {
 
     private final FlashcardListRepository flashcardListRepository;
-    private final FlashcardProgressRepository progressRepository;
     private final FlashcardRepository flashcardRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
     private final FlashcardListMapper flashcardListMapper;
 
     @Override
-    public List<FlashcardListResponse> getFlashcardLists(String type, Long userId) {
-        User user = userRepository.findById(userId).orElseThrow();
+    @Transactional(readOnly = true)
+    public PaginationResponse getFlashcardLists(String type, int page, int size) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        User user = userService.findById(userId);
+        if (type.equals("mine")) size = 7;
+        else size = 8;
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         return switch (type) {
-            case "mine" -> flashcardListRepository.findByUser_UserId(userId).stream()
-                    .map(flashcardListMapper::toResponse).toList();
-            case "learning" -> flashcardListRepository.findLearningByUserId(userId).stream()
-                    .map(flashcardListMapper::toResponse).toList();
-            case "explore" -> flashcardListRepository.findPublicFlashcardsExcludingUser(userId).stream()
-                    .map(list -> {
-                        FlashcardListResponse dto = flashcardListMapper.toResponse(list);
-                        dto.setOwnerName(list.getUser().getFullName());
-                        return dto;
-                    }).toList();
+            case "mine" -> {
+                Page<FlashcardList> pageResult = flashcardListRepository.findByUser_UserId(userId, pageable);
+                Page<FlashcardListResponse> dtoPage = pageResult.map(flashcardListMapper::toResponse);
+                yield PaginationResponse.from(dtoPage, pageable);
+            }
+            case "learning" -> {
+                Page<FlashcardList> pageResult = flashcardListRepository.findInProgressByUserId(userId, pageable);
+                Page<FlashcardListResponse> dtoPage = pageResult.map(flashcardListMapper::toResponse);
+                yield PaginationResponse.from(dtoPage, pageable);
+            }
+            case "explore" -> {
+                Page<FlashcardList> pageResult = flashcardListRepository.findPublicFlashcardsExcludingUser(userId, pageable);
+                Page<FlashcardListResponse> dtoPage = pageResult.map(list -> {
+                    FlashcardListResponse dto = flashcardListMapper.toResponse(list);
+                    dto.setOwnerName(list.getUser().getFullName());
+                    return dto;
+                });
+                yield PaginationResponse.from(dtoPage, pageable);
+            }
             default -> throw new IllegalArgumentException("Invalid type param: " + type);
         };
     }
 
     @Override
-    public FlashcardListResponse createFlashcardList(CreateFlashcardListRequest request, Long userId) {
-        User user = userRepository.findById(userId).orElseThrow();
+    public FlashcardListResponse createFlashcardList(CreateFlashcardListRequest request) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        User user = userService.findById(userId);
+
         FlashcardList list = FlashcardList.builder()
                 .listName(request.getListName())
                 .description(request.getDescription())
@@ -70,7 +90,9 @@ public class FlashcardListServiceImpl implements FlashcardListService {
     }
 
     @Override
-    public FlashcardListDetailResponse getFlashcardListDetail(Long listId, Long userId) {
+    public FlashcardListDetailResponse getFlashcardListDetail(Long listId) {
+        Long userId = SecurityUtil.getCurrentUserId();
+
         FlashcardList list = flashcardListRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("List not found"));
 
@@ -85,21 +107,6 @@ public class FlashcardListServiceImpl implements FlashcardListService {
                         .build())
                 .toList();
 
-        int total = cardItems.size();
-        int learned = 0;
-        int remembered = 0;
-        int review = 0;
-
-        if (userId != null) {
-            Optional<FlashcardProgress> progressOpt = progressRepository.findByUser_UserIdAndList_ListId(userId, listId);
-            if (progressOpt.isPresent()) {
-                FlashcardProgress progress = progressOpt.get();
-                learned = progress.getCorrectCount() + progress.getWrongCount();
-                remembered = progress.getCorrectCount();
-                review = total - remembered;
-            }
-        }
-
         return FlashcardListDetailResponse.builder()
                 .listId(list.getListId())
                 .listName(list.getListName())
@@ -107,16 +114,48 @@ public class FlashcardListServiceImpl implements FlashcardListService {
                 .createdAt(list.getCreatedAt())
                 .isPublic(list.getIsPublic())
                 .isOwner(list.getUser().getUserId() == userId)
-                .totalCards(total)
-                .learnedCards(learned)
-                .rememberedCards(remembered)
-                .needReviewCards(review)
+                .inProgress(list.getInProgress())
                 .flashcards(cardItems)
                 .build();
     }
 
     @Override
-    public void addFlashcardToList(Long listId, FlashcardCreateRequest request, Long userId) {
+    public PaginationResponse getPaginatedFlashcards(Long listId, int page, int size) {
+        Long userId = null;
+        try {
+            userId = SecurityUtil.getCurrentUserId();
+        } catch (Exception e) {
+            // Nếu không đăng nhập thì vẫn có thể xem nếu list là public
+        }
+
+        FlashcardList list = flashcardListRepository.findById(listId)
+                .orElseThrow(() -> new RuntimeException("List not found"));
+
+        // Nếu user không phải chủ list và list không public → chặn truy cập
+        if ((userId == null || !list.getUser().getUserId().equals(userId)) && !Boolean.TRUE.equals(list.getIsPublic())) {
+            throw new RuntimeException("Bạn không có quyền truy cập danh sách này");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("cardId").ascending());
+        Page<Flashcard> pageResult = flashcardRepository.findByList_ListIdOrderByCardIdAsc(listId, pageable);
+
+        Page<FlashcardListDetailResponse.FlashcardItem> mappedPage = pageResult.map(card ->
+                FlashcardListDetailResponse.FlashcardItem.builder()
+                        .cardId(card.getCardId())
+                        .frontText(card.getFrontText())
+                        .backText(card.getBackText())
+                        .category(card.getCategory())
+                        .createdAt(card.getCreatedAt())
+                        .build()
+        );
+
+        return PaginationResponse.from(mappedPage, pageable);
+    }
+
+    @Override
+    public void addFlashcardToList(Long listId, FlashcardCreateRequest request) {
+        Long userId = SecurityUtil.getCurrentUserId();
+
         FlashcardList list = flashcardListRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("List không tồn tại"));
 
@@ -136,7 +175,9 @@ public class FlashcardListServiceImpl implements FlashcardListService {
     }
 
     @Override
-    public void updateFlashcardInList(Long listId, Long cardId, FlashcardCreateRequest request, Long userId) {
+    public void updateFlashcardInList(Long listId, Long cardId, FlashcardCreateRequest request) {
+        Long userId = SecurityUtil.getCurrentUserId();
+
         FlashcardList list = flashcardListRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("List không tồn tại"));
 
@@ -158,7 +199,9 @@ public class FlashcardListServiceImpl implements FlashcardListService {
     }
 
     @Override
-    public void deleteFlashcard(Long listId, Long cardId, Long userId) {
+    public void deleteFlashcard(Long listId, Long cardId) {
+        Long userId = SecurityUtil.getCurrentUserId();
+
         FlashcardList list = flashcardListRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("List không tồn tại"));
 
@@ -177,7 +220,9 @@ public class FlashcardListServiceImpl implements FlashcardListService {
     }
 
     @Override
-    public boolean togglePublicStatus(Long listId, Long userId) {
+    public boolean togglePublicStatus(Long listId) {
+        Long userId = SecurityUtil.getCurrentUserId();
+
         FlashcardList list = flashcardListRepository.findById(listId)
                 .orElseThrow(() -> new RuntimeException("List không tồn tại"));
 
@@ -193,8 +238,10 @@ public class FlashcardListServiceImpl implements FlashcardListService {
 
     @Override
     @Transactional
-    public void updateFlashcardList(Long listId, Long userId, FlashcardListUpdateRequest request) {
-        FlashcardList list = flashcardListRepository.findByListIdAndUser_UserId(listId, userId)
+    public void updateFlashcardList(Long listId, FlashcardListUpdateRequest request) {
+        Long userId = SecurityUtil.getCurrentUserId();
+
+        FlashcardList list = flashcardListRepository.findByListIdAndUser_UserId(listId,userId)
                 .orElseThrow(() -> new RuntimeException("List not found or not yours"));
 
         list.setListName(request.getListName());
@@ -217,5 +264,21 @@ public class FlashcardListServiceImpl implements FlashcardListService {
         flashcardRepository.saveAll(newCards);
         flashcardListRepository.save(list);
     }
+    @Override
+    public void markListInProgress(Long listId) {
+        FlashcardList list = flashcardListRepository.findById(listId)
+                .orElseThrow(() -> new RuntimeException("List không tồn tại"));
+
+        list.setInProgress(true);
+        flashcardListRepository.save(list);
+    }
+    @Override
+    public void stopLearningList(Long listId) {
+        FlashcardList list = flashcardListRepository.findById(listId)
+                .orElseThrow(() -> new RuntimeException("List không tồn tại"));
+        list.setInProgress(false);
+        flashcardListRepository.save(list);
+    }
+
 }
 

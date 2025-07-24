@@ -33,6 +33,9 @@ public class FlashcardList {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "in_progress")
+    private Boolean inProgress = false;
+
     @OneToMany(mappedBy = "list", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Flashcard> flashcards;
 }

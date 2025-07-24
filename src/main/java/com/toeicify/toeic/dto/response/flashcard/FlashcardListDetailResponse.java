@@ -19,11 +19,7 @@ public class FlashcardListDetailResponse {
     private Instant createdAt;
     private Boolean isPublic;
     private Boolean isOwner;
-
-    private int totalCards;
-    private int learnedCards;
-    private int rememberedCards;
-    private int needReviewCards;
+    private Boolean inProgress;
 
     private List<FlashcardItem> flashcards;
 

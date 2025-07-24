@@ -3,6 +3,7 @@ package com.toeicify.toeic.controller;
 import com.toeicify.toeic.dto.request.flashcard.CreateFlashcardListRequest;
 import com.toeicify.toeic.dto.request.flashcard.FlashcardCreateRequest;
 import com.toeicify.toeic.dto.request.flashcard.FlashcardListUpdateRequest;
+import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.flashcard.FlashcardListDetailResponse;
 import com.toeicify.toeic.dto.response.flashcard.FlashcardListResponse;
 import com.toeicify.toeic.service.FlashcardListService;
@@ -10,9 +11,7 @@ import com.toeicify.toeic.util.annotation.ApiMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.toeicify.toeic.util.SecurityUtil;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -23,30 +22,38 @@ public class FlashcardListController {
     private final FlashcardListService flashcardListService;
 
     @GetMapping("/list")
-    @ApiMessage("Get user lists flash card")
-    public ResponseEntity<List<FlashcardListResponse>> getLists(@RequestParam String type) {
-        Long userId = SecurityUtil.getCurrentUserId();
-        return ResponseEntity.ok(flashcardListService.getFlashcardLists(type, userId));
+    @ApiMessage("Get paginated flashcard lists")
+    public ResponseEntity<PaginationResponse> getLists(
+            @RequestParam String type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        return ResponseEntity.ok(flashcardListService.getFlashcardLists(type, page, size));
     }
+
 
     @PostMapping("/list")
     @ApiMessage("Create list flash card")
     public ResponseEntity<FlashcardListResponse> createList(@RequestBody CreateFlashcardListRequest request) {
-        Long userId = SecurityUtil.getCurrentUserId();
-        return ResponseEntity.ok(flashcardListService.createFlashcardList(request, userId));
+        return ResponseEntity.ok(flashcardListService.createFlashcardList(request));
     }
 
     @GetMapping("/list/{id}")
     @ApiMessage("Get list flash card detail")
     public ResponseEntity<FlashcardListDetailResponse> getListDetail(@PathVariable Long id) {
-        Long userId = null;
-        try {
-            userId = SecurityUtil.getCurrentUserId();
-        } catch (Exception e) {
-            // Không đăng nhập cũng cho xem nếu list public
-        }
-        return ResponseEntity.ok(flashcardListService.getFlashcardListDetail(id, userId));
+        return ResponseEntity.ok(flashcardListService.getFlashcardListDetail(id));
     }
+
+    @GetMapping("/list/{id}/cards")
+    @ApiMessage("Get paginated flashcards in a list")
+    public ResponseEntity<PaginationResponse> getFlashcardsInList(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(flashcardListService.getPaginatedFlashcards(id, page, size));
+    }
+
 
     @PostMapping("/{listId}/cards")
     @ApiMessage("Add flash card to List")
@@ -54,8 +61,7 @@ public class FlashcardListController {
             @PathVariable Long listId,
             @RequestBody FlashcardCreateRequest request
     ) {
-        Long userId = SecurityUtil.getCurrentUserId();
-        flashcardListService.addFlashcardToList(listId, request, userId);
+        flashcardListService.addFlashcardToList(listId, request);
         return ResponseEntity.ok().build();
     }
     @PutMapping("/{listId}/cards/{cardId}")
@@ -65,8 +71,7 @@ public class FlashcardListController {
             @PathVariable Long cardId,
             @RequestBody FlashcardCreateRequest request
     ) {
-        Long userId = SecurityUtil.getCurrentUserId();
-        flashcardListService.updateFlashcardInList(listId, cardId, request, userId);
+        flashcardListService.updateFlashcardInList(listId, cardId, request);
         return ResponseEntity.ok().build();
     }
     @DeleteMapping("/{listId}/cards/{cardId}")
@@ -75,15 +80,13 @@ public class FlashcardListController {
             @PathVariable Long listId,
             @PathVariable Long cardId
     ) {
-        Long userId = SecurityUtil.getCurrentUserId();
-        flashcardListService.deleteFlashcard(listId, cardId, userId);
+        flashcardListService.deleteFlashcard(listId, cardId);
         return ResponseEntity.ok().build();
     }
     @PutMapping("/{listId}/toggle-public")
     @ApiMessage("Change list flash card status")
     public ResponseEntity<?> togglePublicStatus(@PathVariable Long listId) {
-        Long userId = SecurityUtil.getCurrentUserId();
-        boolean isNowPublic = flashcardListService.togglePublicStatus(listId, userId);
+        boolean isNowPublic = flashcardListService.togglePublicStatus(listId);
         return ResponseEntity.ok(Map.of("isPublic", isNowPublic));
     }
     @PutMapping("/list/{listId}")
@@ -92,8 +95,21 @@ public class FlashcardListController {
             @PathVariable Long listId,
             @RequestBody FlashcardListUpdateRequest request
     ) {
-        Long userId = SecurityUtil.getCurrentUserId();
-        flashcardListService.updateFlashcardList(listId, userId, request);
+        flashcardListService.updateFlashcardList(listId, request);
         return ResponseEntity.ok().build();
     }
+
+    @PutMapping("/list/{listId}/start-learning")
+    @ApiMessage("Mark list as in progress")
+    public ResponseEntity<?> startLearning(@PathVariable Long listId) {
+        flashcardListService.markListInProgress(listId);
+        return ResponseEntity.ok().build();
+    }
+    @PutMapping("/list/{listId}/stop-learning")
+    @ApiMessage("Stop learning this list")
+    public ResponseEntity<?> stopLearning(@PathVariable Long listId) {
+        flashcardListService.stopLearningList(listId);
+        return ResponseEntity.ok().build();
+    }
+
 }

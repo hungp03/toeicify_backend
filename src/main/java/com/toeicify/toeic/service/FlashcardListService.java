@@ -3,18 +3,23 @@ package com.toeicify.toeic.service;
 import com.toeicify.toeic.dto.request.flashcard.CreateFlashcardListRequest;
 import com.toeicify.toeic.dto.request.flashcard.FlashcardCreateRequest;
 import com.toeicify.toeic.dto.request.flashcard.FlashcardListUpdateRequest;
+import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.flashcard.FlashcardListDetailResponse;
 import com.toeicify.toeic.dto.response.flashcard.FlashcardListResponse;
+import com.toeicify.toeic.entity.FlashcardList;
 
-import java.util.List;
+import java.time.Instant;
 
 public interface FlashcardListService {
-    List<FlashcardListResponse> getFlashcardLists(String type, Long userId);
-    FlashcardListResponse createFlashcardList(CreateFlashcardListRequest request, Long userId);
-    FlashcardListDetailResponse getFlashcardListDetail(Long listId, Long userId);
-    void addFlashcardToList(Long listId, FlashcardCreateRequest request, Long userId);
-    void updateFlashcardInList(Long listId, Long cardId, FlashcardCreateRequest request, Long userId);
-    void deleteFlashcard(Long listId, Long cardId, Long userId);
-    boolean togglePublicStatus(Long listId, Long userId);
-    void updateFlashcardList(Long listId, Long userId, FlashcardListUpdateRequest request);
+    PaginationResponse getFlashcardLists(String type, int page, int size);
+    FlashcardListResponse createFlashcardList(CreateFlashcardListRequest request);
+    FlashcardListDetailResponse getFlashcardListDetail(Long listId);
+    PaginationResponse getPaginatedFlashcards(Long listId, int page, int size);
+    void addFlashcardToList(Long listId, FlashcardCreateRequest request);
+    void updateFlashcardInList(Long listId, Long cardId, FlashcardCreateRequest request);
+    void deleteFlashcard(Long listId, Long cardId);
+    boolean togglePublicStatus(Long listId);
+    void updateFlashcardList(Long listId, FlashcardListUpdateRequest request);
+    void markListInProgress(Long listId);
+    void stopLearningList(Long listId);
 }
