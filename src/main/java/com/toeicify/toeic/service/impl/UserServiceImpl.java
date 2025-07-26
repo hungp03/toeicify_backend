@@ -3,6 +3,8 @@ package com.toeicify.toeic.service.impl;
 import com.toeicify.toeic.dto.request.auth.RegisterRequest;
 import com.toeicify.toeic.dto.request.user.UpdatePasswordRequest;
 import com.toeicify.toeic.dto.request.user.UpdateUserRequest;
+import com.toeicify.toeic.dto.response.PaginationResponse;
+import com.toeicify.toeic.dto.response.user.AdminUpdateUserResponse;
 import com.toeicify.toeic.dto.response.user.UserUpdateResponse;
 import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
@@ -15,6 +17,7 @@ import com.toeicify.toeic.service.UserService;
 import com.toeicify.toeic.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -125,17 +128,26 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
-    @Override
-    public Page<User> getUsers(String searchTerm, Pageable pageable) {
+    public PaginationResponse getUsers(String searchTerm,int page ,int pageSize){
+        Pageable pageable = PageRequest.of(page,pageSize);
+        Page<User> pageResult;
         if (searchTerm == null || searchTerm.isEmpty()) {
-            return userRepository.findAll(pageable);
+            pageResult = userRepository.findAll(pageable);
         }
-        return userRepository.findByUsernameOrEmail(searchTerm, pageable);
+        else {
+            pageResult = userRepository.findByUsernameOrEmail(searchTerm, pageable);
+        }
+        Page<AdminUpdateUserResponse> responsePage = pageResult.map(user -> AdminUpdateUserResponse.from(user));
+        return PaginationResponse.from(responsePage,pageable);
     }
+
 
     @Override
     @Transactional
-    public void updateUser(User user) {
-        userRepository.save(user);
+    public User toggleUserStatus(Long userId) {
+        User user = findById(userId);
+        user.setIsActive(!user.getIsActive());
+        return userRepository.save(user);
     }
+
 }

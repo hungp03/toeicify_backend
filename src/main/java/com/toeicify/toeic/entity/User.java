@@ -42,7 +42,6 @@ public class User {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id")
-    @JsonIgnore // Ignore this field during serialization to avoid infinite recursion
     private Role role;
 
     @Column(name = "social_media_id", length = 100)
