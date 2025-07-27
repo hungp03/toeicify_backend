@@ -6,11 +6,8 @@ import com.toeicify.toeic.dto.request.flashcard.FlashcardListUpdateRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.flashcard.FlashcardListDetailResponse;
 import com.toeicify.toeic.dto.response.flashcard.FlashcardListResponse;
-import com.toeicify.toeic.entity.FlashcardList;
 
-import java.time.Instant;
-
-public interface FlashcardListService {
+public interface FlashcardService {
     PaginationResponse getFlashcardLists(String type, int page, int size);
     FlashcardListResponse createFlashcardList(CreateFlashcardListRequest request);
     FlashcardListDetailResponse getFlashcardListDetail(Long listId);

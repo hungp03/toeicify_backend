@@ -34,7 +34,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User register(RegisterRequest request){
+    public void register(RegisterRequest request){
         if (existsByEmail(request.email())) {
             throw new ResourceAlreadyExistsException("User with this email already exists.");
         }
@@ -45,10 +45,10 @@ public class UserServiceImpl implements UserService {
                 .fullName(request.fullName())
                 .username(request.username())
                 .email(request.email())
-                .passwordHash(request.password()) // password is encrypted password from previous step
+                .passwordHash(request.password()) // the password is encrypted from a previous step
                 .role(roleRepository.findById("GUEST").orElseThrow(() -> new ResourceNotFoundException("Default role not found")))
                 .build();
-        return userRepository.save(newUser);
+        userRepository.save(newUser);
     }
     @Override
     public User findById(Long uid) {
@@ -119,7 +119,14 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+    @Override
+    public boolean existsById(Long userId) {
+        return userRepository.existsById(userId);
+    }
+
     private User findByEmail(String email) {
         return userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
+
+
 }

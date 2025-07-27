@@ -6,7 +6,7 @@ import com.toeicify.toeic.dto.request.flashcard.FlashcardListUpdateRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.flashcard.FlashcardListDetailResponse;
 import com.toeicify.toeic.dto.response.flashcard.FlashcardListResponse;
-import com.toeicify.toeic.service.FlashcardListService;
+import com.toeicify.toeic.service.FlashcardService;
 import com.toeicify.toeic.util.annotation.ApiMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +17,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/flashcards")
 @RequiredArgsConstructor
-public class FlashcardListController {
+public class FlashcardController {
 
-    private final FlashcardListService flashcardListService;
+    private final FlashcardService flashcardListService;
 
     @GetMapping("/list")
     @ApiMessage("Get paginated flashcard lists")
