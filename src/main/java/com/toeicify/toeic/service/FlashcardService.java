@@ -19,4 +19,5 @@ public interface FlashcardService {
     void updateFlashcardList(Long listId, FlashcardListUpdateRequest request);
     void markListInProgress(Long listId);
     void stopLearningList(Long listId);
+    void deleteFlashcardList(Long listId);
 }

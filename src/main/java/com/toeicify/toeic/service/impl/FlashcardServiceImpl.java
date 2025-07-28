@@ -277,4 +277,21 @@ public class FlashcardServiceImpl implements FlashcardService {
         list.setInProgress(inProgress);
         flashcardListRepository.save(list);
     }
+    @Override
+    @Transactional
+    public void deleteFlashcardList(Long listId) {
+        Long userId = getCurrentUserId();
+        FlashcardList list = findFlashcardListById(listId);
+
+        // Kiểm tra quyền sở hữu
+        if (!Objects.equals(list.getUser().getUserId(), userId)) {
+            throw new AccessDeniedException("You are not allowed to delete this list");
+        }
+
+        // Xoá tất cả flashcards trước (Cascade nếu có thì không cần bước này)
+        flashcardRepository.deleteByList_ListId(listId);
+
+        // Sau đó xoá list
+        flashcardListRepository.delete(list);
+    }
 }
