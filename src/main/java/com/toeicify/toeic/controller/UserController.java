@@ -41,20 +41,23 @@ public class UserController {
     // @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("")
     @ApiMessage("Get paginated list of users")
-    public ApiResponse<PaginationResponse> getUsers(
+    public ResponseEntity<ApiResponse<PaginationResponse>> getUsers(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "") String searchTerm) {
         page = page - 1;
-        return ApiResponse.success(userService.getUsers(searchTerm,page, size));
+        PaginationResponse data = userService.getUsers(searchTerm, page, size);
+        return ResponseEntity.ok(ApiResponse.success(data));
     }
 
     @PatchMapping("/{userId}/toggle-status")
     @ApiMessage("Toggle user status")
-    public ApiResponse<AdminUpdateUserResponse> toggleUserStatus(@PathVariable Long userId) {
-        User updatedUser = userService.toggleUserStatus(userId);
+    public ResponseEntity<ApiResponse<AdminUpdateUserResponse>> toggleUserStatus(
+            @PathVariable Long userId,
+            @RequestBody(required = false) String lockReason) {
+        User updatedUser = userService.toggleUserStatus(userId, lockReason);
         AdminUpdateUserResponse response = AdminUpdateUserResponse.from(updatedUser);
-        return ApiResponse.success(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
 }

@@ -9,13 +9,15 @@ import com.toeicify.toeic.dto.response.PaginationResponse;
 
 public interface UserService {
     User findByUsernameOrEmail(String identifier);
-    User register(RegisterRequest request);
+    void register(RegisterRequest request);
     User findById(Long uid);
     UserUpdateResponse updateCurrentUser(UpdateUserRequest request);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     void changePassword(UpdatePasswordRequest request);
     void resetPassword(String email, String newPassword);
+
+    boolean existsById(Long userId);
     PaginationResponse getUsers(String searchTerm,int page, int pageSize);
-    User toggleUserStatus(Long userId);
+    User toggleUserStatus(Long userId, String lockReason);
 }

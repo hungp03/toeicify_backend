@@ -3,9 +3,8 @@ package com.toeicify.toeic.service.impl;
 import com.toeicify.toeic.dto.request.auth.RegisterRequest;
 import com.toeicify.toeic.dto.request.user.UpdatePasswordRequest;
 import com.toeicify.toeic.dto.request.user.UpdateUserRequest;
-import com.toeicify.toeic.dto.response.PaginationResponse;
-import com.toeicify.toeic.dto.response.user.AdminUpdateUserResponse;
 import com.toeicify.toeic.dto.response.user.UserUpdateResponse;
+import com.toeicify.toeic.dto.response.user.AdminUpdateUserResponse;
 import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
 import com.toeicify.toeic.exception.ResourceInvalidException;
@@ -17,13 +16,10 @@ import com.toeicify.toeic.service.UserService;
 import com.toeicify.toeic.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +35,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User register(RegisterRequest request){
+    public void register(RegisterRequest request){
         if (existsByEmail(request.email())) {
             throw new ResourceAlreadyExistsException("User with this email already exists.");
         }
@@ -50,10 +46,10 @@ public class UserServiceImpl implements UserService {
                 .fullName(request.fullName())
                 .username(request.username())
                 .email(request.email())
-                .passwordHash(request.password()) // password is encrypted password from previous step
+                .passwordHash(request.password()) // the password is encrypted from a previous step
                 .role(roleRepository.findById("GUEST").orElseThrow(() -> new ResourceNotFoundException("Default role not found")))
                 .build();
-        return userRepository.save(newUser);
+        userRepository.save(newUser);
     }
     @Override
     public User findById(Long uid) {
@@ -124,6 +120,11 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+    @Override
+    public boolean existsById(Long userId) {
+        return userRepository.existsById(userId);
+    }
+
     private User findByEmail(String email) {
         return userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
@@ -141,13 +142,19 @@ public class UserServiceImpl implements UserService {
         return PaginationResponse.from(responsePage,pageable);
     }
 
-
     @Override
     @Transactional
-    public User toggleUserStatus(Long userId) {
+    public User toggleUserStatus(Long userId, String lockReason) {
         User user = findById(userId);
-        user.setIsActive(!user.getIsActive());
+        boolean newStatus = !user.getIsActive();
+        user.setIsActive(newStatus);
+        if (!newStatus && lockReason != null && !lockReason.trim().isEmpty()) {
+            user.setLockReason(lockReason);
+        } else {
+            user.setLockReason(null);
+        }
         return userRepository.save(user);
     }
+
 
 }

@@ -14,7 +14,8 @@ public record AdminUpdateUserResponse(
         String roleName,
         Instant examDate,
         Boolean isActive,
-        Instant registrationDate
+        Instant registrationDate,
+        String lockReason
 ) {
     public static AdminUpdateUserResponse from(User user) {
         return new AdminUpdateUserResponse(
@@ -27,8 +28,8 @@ public record AdminUpdateUserResponse(
                 user.getRole() != null ? user.getRole().getRoleName() : null,
                 user.getExamDate(),
                 user.getIsActive(),
-                user.getRegistrationDate()
+                user.getRegistrationDate(),
+                user.getLockReason()
         );
     }
 }
-
