@@ -4,20 +4,15 @@ import com.toeicify.toeic.entity.User;
 
 import java.time.Instant;
 
-/**
- * Created by hungpham on 7/7/2025
- */
-
-public record UserInfoResponse(
+public record AdminUserResponse(
         Long userId,
         String username,
         String email,
         String fullName,
-        Integer targetScore,
         String roleId,
         String roleName,
-        Instant examDate,
-        Instant registrationDate
+        Boolean isActive,
+        Instant registrationDate,
+        String lockReason
 ) {
 }
-

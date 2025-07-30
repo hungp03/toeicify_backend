@@ -3,7 +3,9 @@ package com.toeicify.toeic.service.impl;
 import com.toeicify.toeic.dto.request.auth.RegisterRequest;
 import com.toeicify.toeic.dto.request.user.UpdatePasswordRequest;
 import com.toeicify.toeic.dto.request.user.UpdateUserRequest;
+import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.user.UserUpdateResponse;
+import com.toeicify.toeic.dto.response.user.AdminUserResponse;
 import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
 import com.toeicify.toeic.exception.ResourceInvalidException;
@@ -15,6 +17,9 @@ import com.toeicify.toeic.service.UserService;
 import com.toeicify.toeic.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -100,7 +105,7 @@ public class UserServiceImpl implements UserService {
         if (!request.newPassword().equals(request.confirmPassword())) {
             throw new ResourceInvalidException("Confirm password does not match.");
         }
-        Long uid = Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
+        Long uid = SecurityUtil.getCurrentUserId();
         User user = findById(uid);
         if(user.getPasswordHash() == null || user.getPasswordHash().isEmpty()){
             throw new ResourceInvalidException("You account did not have password. Please login with Google or reset password.");
@@ -128,5 +133,23 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
+    public PaginationResponse getUsers(String searchTerm, int page, int pageSize) {
+        Pageable pageable = PageRequest.of(page, pageSize);
+        Page<User> pageResult = (searchTerm == null || searchTerm.isBlank())
+                ? userRepository.findAll(pageable)
+                : userRepository.findByUsernameOrEmail(searchTerm, pageable);
 
+        return PaginationResponse.from(pageResult.map(userMapper::toAdminUserResponse), pageable);
+    }
+
+
+    @Override
+    @Transactional
+    public void toggleUserStatus(Long userId, String lockReason) {
+        User user = findById(userId);
+        boolean isActive = !user.getIsActive();
+        user.setIsActive(isActive);
+        user.setLockReason(!isActive && lockReason != null && !lockReason.trim().isEmpty() ? lockReason : null);
+        userRepository.save(user);
+    }
 }

@@ -38,7 +38,6 @@ public class JwtServiceImpl implements JwtService {
                 .expiresAt(now.plus(240, ChronoUnit.HOURS)) // 1 hour
                 .subject(String.valueOf(userDetails.getUser().getUserId()))
                 .id(UUID.randomUUID().toString()) // jti
-                .claim("userId", userDetails.getUser().getUserId())
                 .claim("username", userDetails.getUsername())
                 .claim("authorities", List.of("ROLE_" + userDetails.getUser().getRole().getRoleId()))
                 .build();

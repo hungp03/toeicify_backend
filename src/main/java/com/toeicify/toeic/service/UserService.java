@@ -5,7 +5,7 @@ import com.toeicify.toeic.dto.request.user.UpdatePasswordRequest;
 import com.toeicify.toeic.dto.request.user.UpdateUserRequest;
 import com.toeicify.toeic.dto.response.user.UserUpdateResponse;
 import com.toeicify.toeic.entity.User;
-
+import com.toeicify.toeic.dto.response.PaginationResponse;
 
 public interface UserService {
     User findByUsernameOrEmail(String identifier);
@@ -18,4 +18,6 @@ public interface UserService {
     void resetPassword(String email, String newPassword);
 
     boolean existsById(Long userId);
+    PaginationResponse getUsers(String searchTerm,int page, int pageSize);
+    void toggleUserStatus(Long userId, String lockReason);
 }
