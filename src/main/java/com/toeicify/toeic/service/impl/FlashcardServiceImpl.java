@@ -9,8 +9,8 @@ import com.toeicify.toeic.dto.response.flashcard.FlashcardListResponse;
 import com.toeicify.toeic.entity.Flashcard;
 import com.toeicify.toeic.entity.FlashcardList;
 import com.toeicify.toeic.entity.User;
+import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
-import com.toeicify.toeic.exception.UnauthorizedException;
 import com.toeicify.toeic.mapper.FlashcardMapper;
 import com.toeicify.toeic.repository.FlashcardListRepository;
 import com.toeicify.toeic.repository.FlashcardRepository;
@@ -43,7 +43,7 @@ public class FlashcardServiceImpl implements FlashcardService {
     @Override
     @Transactional(readOnly = true)
     public PaginationResponse getFlashcardLists(String type, int page, int size) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
 
         int adjustedSize = switch (type) {
             case "mine" -> 7;
@@ -60,7 +60,7 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     @Override
     public FlashcardListResponse createFlashcardList(CreateFlashcardListRequest request) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         User user = userService.findById(userId);
 
         FlashcardList list = FlashcardList.builder()
@@ -76,7 +76,7 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     @Override
     public FlashcardListDetailResponse getFlashcardListDetail(Long listId) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         FlashcardList list = findFlashcardListById(listId);
 
         List<FlashcardListDetailResponse.FlashcardItem> cardItems = list.getFlashcards().stream()
@@ -98,7 +98,7 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     @Override
     public PaginationResponse getPaginatedFlashcards(Long listId, int page, int size) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         FlashcardList list = findFlashcardListById(listId);
 
         validateListAccess(list, userId);
@@ -112,7 +112,7 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     @Override
     public void addFlashcardToList(Long listId, FlashcardCreateRequest request) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         FlashcardList list = getOwnedList(listId, userId);
 
         Flashcard card = buildFlashcard(list, request);
@@ -121,7 +121,7 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     @Override
     public void updateFlashcardInList(Long listId, Long cardId, FlashcardCreateRequest request) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         getOwnedList(listId, userId);
         Flashcard card = getCardInListOrThrow(cardId, listId);
 
@@ -131,7 +131,7 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     @Override
     public void deleteFlashcard(Long listId, Long cardId) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         getOwnedList(listId, userId);
         Flashcard card = getCardInListOrThrow(cardId, listId);
 
@@ -140,7 +140,7 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     @Override
     public boolean togglePublicStatus(Long listId) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         FlashcardList list = getOwnedList(listId, userId);
 
         list.setIsPublic(!Boolean.TRUE.equals(list.getIsPublic()));
@@ -151,9 +151,9 @@ public class FlashcardServiceImpl implements FlashcardService {
     @Override
     @Transactional
     public void updateFlashcardList(Long listId, FlashcardListUpdateRequest request) {
-        Long userId = getCurrentUserId();
+        Long userId = SecurityUtil.getCurrentUserId();
         FlashcardList list = flashcardListRepository.findByListIdAndUser_UserId(listId, userId)
-                .orElseThrow(() -> new RuntimeException("List not found or not yours"));
+                .orElseThrow(() -> new ResourceNotFoundException("List not found or not yours"));
 
         updateListBasicInfo(list, request);
         replaceFlashcards(list, request.getFlashcards());
@@ -171,21 +171,12 @@ public class FlashcardServiceImpl implements FlashcardService {
         updateListProgressStatus(listId, false);
     }
 
-    // Helper methods
-    private Long getCurrentUserId() {
-        Long userId = SecurityUtil.getCurrentUserId();
-        if (!userService.existsById(userId)) {
-            throw new UnauthorizedException("User is unauthorized");
-        }
-        return userId;
-    }
-
     private Page<FlashcardList> getPageResultByType(String type, Long userId, Pageable pageable) {
         return switch (type) {
             case "mine" -> flashcardListRepository.findByUser_UserId(userId, pageable);
             case "learning" -> flashcardListRepository.findInProgressByUserId(userId, pageable);
             case "explore" -> flashcardListRepository.findPublicFlashcardsExcludingUser(userId, pageable);
-            default -> throw new IllegalArgumentException("Invalid type param: " + type);
+            default -> throw new ResourceInvalidException("Invalid type param: " + type);
         };
     }
 
@@ -203,7 +194,7 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     private FlashcardList findFlashcardListById(Long listId) {
         return flashcardListRepository.findById(listId)
-                .orElseThrow(() -> new RuntimeException("List not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("List not found"));
     }
 
 
@@ -213,7 +204,7 @@ public class FlashcardServiceImpl implements FlashcardService {
         boolean isPublic = Boolean.TRUE.equals(list.getIsPublic());
 
         if (!isOwner && !isPublic) {
-            throw new RuntimeException("You do not have permission to access this flashcard list.");
+            throw new AccessDeniedException("You do not have permission to access this flashcard list.");
         }
     }
 
@@ -232,7 +223,7 @@ public class FlashcardServiceImpl implements FlashcardService {
                 .orElseThrow(() -> new ResourceNotFoundException("Flashcard not found"));
 
         if (!card.getList().getListId().equals(listId)) {
-            throw new RuntimeException("The flashcard does not belong to this list.");
+            throw new ResourceInvalidException("The flashcard does not belong to this list.");
         }
         return card;
     }
@@ -272,9 +263,20 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     private void updateListProgressStatus(Long listId, boolean inProgress) {
         FlashcardList list = flashcardListRepository.findById(listId)
-                .orElseThrow(() -> new RuntimeException("Flashcard list is not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Flashcard list is not found"));
 
         list.setInProgress(inProgress);
         flashcardListRepository.save(list);
+    }
+    @Override
+    @Transactional
+    public void deleteFlashcardList(Long listId) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        FlashcardList list = findFlashcardListById(listId);
+        if (!Objects.equals(list.getUser().getUserId(), userId)) {
+            throw new AccessDeniedException("You are not allowed to delete this list");
+        }
+        flashcardRepository.deleteByList_ListId(listId);
+        flashcardListRepository.delete(list);
     }
 }

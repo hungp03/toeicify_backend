@@ -111,5 +111,11 @@ public class FlashcardController {
         flashcardListService.stopLearningList(listId);
         return ResponseEntity.ok().build();
     }
+    @DeleteMapping("/list/{listId}")
+    @ApiMessage("Delete list and its flashcards")
+    public ResponseEntity<?> deleteFlashcardList(@PathVariable Long listId) {
+        flashcardListService.deleteFlashcardList(listId);
+        return ResponseEntity.ok().build();
+    }
 
 }
