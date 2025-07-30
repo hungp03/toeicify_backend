@@ -14,6 +14,7 @@ import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
 import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
+import com.toeicify.toeic.mapper.UserMapper;
 import com.toeicify.toeic.service.*;
 import com.toeicify.toeic.util.SecurityUtil;
 import jakarta.transaction.Transactional;
@@ -45,6 +46,7 @@ public class AuthServiceImpl implements AuthService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final PasswordEncoder passwordEncoder;
     private final IdentifyCodeService identifyCodeService;
+    private final UserMapper userMapper;
 
     @Override
     public AuthResponse login(AuthRequest request) {
@@ -96,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
     public UserInfoResponse getUserInfo() {
         Long uid = SecurityUtil.getCurrentUserId();
         User user = userService.findById(uid);
-        return UserInfoResponse.from(user);
+        return userMapper.toUserInfoResponse(user);
     }
 
     @Override

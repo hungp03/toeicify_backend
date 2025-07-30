@@ -19,5 +19,5 @@ public interface UserService {
 
     boolean existsById(Long userId);
     PaginationResponse getUsers(String searchTerm,int page, int pageSize);
-    User toggleUserStatus(Long userId, String lockReason);
+    void toggleUserStatus(Long userId, String lockReason);
 }

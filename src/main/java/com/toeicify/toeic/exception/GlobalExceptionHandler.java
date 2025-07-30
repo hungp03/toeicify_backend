@@ -71,6 +71,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleException(RuntimeException ex) {
         return buildResponse(ErrorCode.EXCEPTION, "Server Error", ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
     private ResponseEntity<ApiResponse<Object>> buildResponse(int statusCode, String error, Object message, HttpStatus status) {
         ApiResponse<Object> response = ApiResponse.error(statusCode, message, error);
         return ResponseEntity.status(status).body(response);
