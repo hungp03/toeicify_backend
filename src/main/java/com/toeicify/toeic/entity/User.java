@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 @Entity
@@ -35,7 +36,7 @@ public class User {
     private Integer targetScore;
 
     @Column(name = "exam_date")
-    private Instant examDate;
+    private LocalDate examDate;
 
     @Column(name = "registration_date")
     private Instant registrationDate;

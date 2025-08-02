@@ -1,8 +1,7 @@
 package com.toeicify.toeic.dto.response.user;
 
-import com.toeicify.toeic.entity.User;
-
 import java.time.Instant;
+import java.time.LocalDate;
 
 /**
  * Created by hungpham on 7/7/2025
@@ -16,7 +15,7 @@ public record UserInfoResponse(
         Integer targetScore,
         String roleId,
         String roleName,
-        Instant examDate,
+        LocalDate examDate,
         Instant registrationDate
 ) {
 }

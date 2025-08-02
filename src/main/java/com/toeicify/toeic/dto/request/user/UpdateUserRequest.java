@@ -2,8 +2,7 @@ package com.toeicify.toeic.dto.request.user;
 
 import com.toeicify.toeic.util.constant.ValidationPatterns;
 import jakarta.validation.constraints.*;
-
-import java.time.Instant;
+import java.time.LocalDate;
 
 /**
  * Created by hungpham on 7/9/2025
@@ -20,7 +19,7 @@ public record UpdateUserRequest(
         @Pattern(regexp = ValidationPatterns.EMAIL_PATTERN, message = "Email cannot contain special characters or spaces, only -, _, ., and + are allowed")
         String email,
         @FutureOrPresent(message = "Exam date must be today or in the future")
-        Instant examDate,
+        LocalDate examDate,
         @Min(value = 0, message = "Target score must be between 0 and 990")
         @Max(value = 990, message = "Target score must be between 0 and 990")
         Integer targetScore ) {
