@@ -20,4 +20,5 @@ public interface FlashcardService {
     void markListInProgress(Long listId);
     void stopLearningList(Long listId);
     void deleteFlashcardList(Long listId);
+    PaginationResponse searchFlashcardLists(String keyword, int page, int size);
 }
