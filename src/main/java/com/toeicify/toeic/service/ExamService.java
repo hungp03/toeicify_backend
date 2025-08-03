@@ -19,4 +19,6 @@ public interface ExamService {
 
     @Transactional
     ExamResponse updateExam(Long id, ExamRequest request);
+
+    void deleteById(Long id);
 }

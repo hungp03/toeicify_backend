@@ -1,0 +1,19 @@
+package com.toeicify.toeic.service;
+
+import com.toeicify.toeic.dto.request.question.QuestionGroupRequest;
+import com.toeicify.toeic.dto.response.PaginationResponse;
+import com.toeicify.toeic.dto.response.question.QuestionGroupResponse;
+
+import java.util.List;
+
+/**
+ * Created by hungpham on 8/3/2025
+ */
+public interface QuestionService {
+    QuestionGroupResponse createQuestionGroup(QuestionGroupRequest request);
+    QuestionGroupResponse getQuestionGroupById(Long id);
+    QuestionGroupResponse updateQuestionGroup(Long id, QuestionGroupRequest request);
+    void deleteQuestionGroup(Long id);
+    List<QuestionGroupResponse> getQuestionGroupsByPartId(Long partId);
+    PaginationResponse searchQuestionGroups(Long partId, int page, int size);
+}

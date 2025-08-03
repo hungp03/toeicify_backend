@@ -3,11 +3,13 @@ package com.toeicify.toeic.service.impl;
 import com.toeicify.toeic.dto.request.examcategory.ExamCategoryRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.examcategory.ExamCategoryResponse;
+import com.toeicify.toeic.projection.ExamCategoryWithCount;
 import com.toeicify.toeic.entity.ExamCategory;
 import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
 import com.toeicify.toeic.mapper.ExamCategoryMapper;
 import com.toeicify.toeic.repository.ExamCategoryRepository;
+import com.toeicify.toeic.repository.ExamRepository;
 import com.toeicify.toeic.service.ExamCategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,7 +25,7 @@ import org.springframework.stereotype.Service;
 public class ExamCategoryServiceImpl implements ExamCategoryService {
     private final ExamCategoryRepository examCategoryRepository;
     private final ExamCategoryMapper examCategoryMapper;
-
+    private final ExamRepository examRepository;
     @Override
 
     public ExamCategoryResponse createExamCategory(ExamCategoryRequest examCategory) {
@@ -47,14 +49,27 @@ public class ExamCategoryServiceImpl implements ExamCategoryService {
 
     @Override
     public void deleteExamCategory(Long id) {
-
+        if (!examCategoryRepository.existsById(id)){
+            throw new ResourceNotFoundException("Exam category does not exist");
+        }
+        long examCount = examRepository.countByExamCategory_CategoryId(id);
+        if (examCount > 0) {
+            throw new ResourceAlreadyExistsException("Cannot delete category because it contains exams");
+        }
+        examCategoryRepository.deleteById(id);
     }
 
     @Override
     public PaginationResponse getAllExamCategories(int page, int pageSize) {
         Pageable pageable = PageRequest.of(page, pageSize);
-        Page<ExamCategory> pageResult = examCategoryRepository.findAll(pageable);
-        Page<ExamCategoryResponse> responsePage = pageResult.map(examCategoryMapper::toResponse);
+        Page<ExamCategoryWithCount> pageResult = examCategoryRepository.findAllCategoriesWithExamCount(pageable);
+
+        Page<ExamCategoryResponse> responsePage = pageResult.map(item -> {
+            ExamCategoryResponse response = examCategoryMapper.toResponse(item.getCategory());
+            response.setExamCount(item.getExamCount());
+            return response;
+        });
+
         return PaginationResponse.from(responsePage, pageable);
     }
 

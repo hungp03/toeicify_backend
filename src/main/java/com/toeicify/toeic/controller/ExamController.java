@@ -47,4 +47,10 @@ public class ExamController {
     ) {
         return ResponseEntity.ok(examService.searchExams(keyword, categoryId, page, size));
     }
+
+    @DeleteMapping("{id}")
+    public ResponseEntity<ExamResponse> deleteExam(@PathVariable Long id) {
+        examService.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
 }

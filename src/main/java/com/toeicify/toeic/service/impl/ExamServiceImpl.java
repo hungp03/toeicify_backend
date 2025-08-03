@@ -11,12 +11,14 @@ import com.toeicify.toeic.entity.ExamPart;
 import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
 import com.toeicify.toeic.exception.ResourceInvalidException;
+import com.toeicify.toeic.exception.ResourceNotFoundException;
 import com.toeicify.toeic.mapper.ExamMapper;
 import com.toeicify.toeic.repository.ExamRepository;
 import com.toeicify.toeic.service.ExamCategoryService;
 import com.toeicify.toeic.service.ExamService;
 import com.toeicify.toeic.service.UserService;
 import com.toeicify.toeic.util.SecurityUtil;
+import com.toeicify.toeic.util.enums.ExamStatus;
 import org.springframework.data.domain.*;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -143,5 +145,19 @@ public class ExamServiceImpl implements ExamService {
 
         Exam updated = examRepository.save(exam);
         return examMapper.toExamResponse(updated);
+    }
+
+    @Override
+    @Transactional
+    public void deleteById(Long id) {
+        Exam exam = examRepository.findWithPartsByExamId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
+        boolean hasParts = exam.getExamParts() != null && !exam.getExamParts().isEmpty();
+        if (hasParts) {
+            exam.setStatus(ExamStatus.CANCELLED);
+            examRepository.save(exam);
+        } else {
+            examRepository.delete(exam);
+        }
     }
 }
