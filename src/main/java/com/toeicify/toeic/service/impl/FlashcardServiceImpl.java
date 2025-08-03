@@ -9,6 +9,7 @@ import com.toeicify.toeic.dto.response.flashcard.FlashcardListResponse;
 import com.toeicify.toeic.entity.Flashcard;
 import com.toeicify.toeic.entity.FlashcardList;
 import com.toeicify.toeic.entity.User;
+import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
 import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
 import com.toeicify.toeic.mapper.FlashcardMapper;
@@ -27,9 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -59,9 +58,27 @@ public class FlashcardServiceImpl implements FlashcardService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PaginationResponse searchFlashcardLists(String keyword, int page, int size) {
+        Long userId = SecurityUtil.getCurrentUserId(); // Lấy user hiện tại
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<FlashcardList> pageResult = flashcardListRepository.searchPublicFlashcardsExcludingUserByListName(userId, keyword, pageable);
+
+        Page<FlashcardListResponse> dtoPage = pageResult.map(flashcardMapper::toResponse);
+
+        return PaginationResponse.from(dtoPage, pageable);
+    }
+
+    @Override
     public FlashcardListResponse createFlashcardList(CreateFlashcardListRequest request) {
         Long userId = SecurityUtil.getCurrentUserId();
         User user = userService.findById(userId);
+
+        if (flashcardListRepository.existsByListNameAndUser_UserId(request.getListName(), userId)) {
+            throw new ResourceAlreadyExistsException("List name already exists");
+        }
+
 
         FlashcardList list = FlashcardList.builder()
                 .listName(request.getListName())
@@ -115,6 +132,11 @@ public class FlashcardServiceImpl implements FlashcardService {
         Long userId = SecurityUtil.getCurrentUserId();
         FlashcardList list = getOwnedList(listId, userId);
 
+        validateFlashcardAddExists(listId,
+                request.getFrontText().trim(),
+                request.getBackText().trim(),
+                request.getCategory().trim());
+
         Flashcard card = buildFlashcard(list, request);
         flashcardRepository.save(card);
     }
@@ -124,7 +146,12 @@ public class FlashcardServiceImpl implements FlashcardService {
         Long userId = SecurityUtil.getCurrentUserId();
         getOwnedList(listId, userId);
         Flashcard card = getCardInListOrThrow(cardId, listId);
-
+        if (card.getFrontText().equals(request.getFrontText()) &&
+                card.getBackText().equals(request.getBackText()) &&
+                card.getCategory().equals(request.getCategory())) {
+            throw new ResourceInvalidException("No changes detected in the update request.");
+        }
+        validateFlashcardUpdateExists(listId,cardId,request);
         updateFlashcardFields(card, request);
         flashcardRepository.save(card);
     }
@@ -155,6 +182,11 @@ public class FlashcardServiceImpl implements FlashcardService {
         FlashcardList list = flashcardListRepository.findByListIdAndUser_UserId(listId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("List not found or not yours"));
 
+        if (!list.getListName().equals(request.getListName())
+                && flashcardListRepository.existsByListNameAndUser_UserId(request.getListName(), userId)) {
+            throw new ResourceAlreadyExistsException("List name already exists");
+        }
+        validateDuplicateFlashcards(request.getFlashcards());
         updateListBasicInfo(list, request);
         replaceFlashcards(list, request.getFlashcards());
 
@@ -197,7 +229,49 @@ public class FlashcardServiceImpl implements FlashcardService {
                 .orElseThrow(() -> new ResourceNotFoundException("List not found"));
     }
 
+    private void validateFlashcardAddExists(Long listId, String frontText, String backText, String category){
+        boolean exists = flashcardRepository.existsByList_ListIdAndFrontTextAndBackTextAndCategory(
+                listId,
+                frontText,
+                backText,
+                category
+        );
 
+        if (exists) {
+            throw new ResourceAlreadyExistsException(
+                    "Flashcard already exists in this list."
+            );
+        }
+    }
+    
+    private void validateFlashcardUpdateExists(Long listId, Long cardId, FlashcardCreateRequest request){
+        boolean exists = flashcardRepository.existsByList_ListIdAndFrontTextAndBackTextAndCategoryAndCardIdNot(
+                listId,
+                request.getFrontText().trim(),
+                request.getBackText().trim(),
+                request.getCategory().trim(),
+                cardId
+        );
+
+        if (exists) {
+            throw new ResourceAlreadyExistsException(
+                    "Another flashcard with the same front text, back text, and category already exists in this list."
+            );
+        }
+
+    }
+
+    private void validateDuplicateFlashcards(List<FlashcardCreateRequest> flashcards) {
+        Set<String> uniqueCards = new HashSet<>();
+        for (FlashcardCreateRequest card : flashcards) {
+            String key = card.getFrontText().trim().toLowerCase() +
+                    "|" + card.getBackText().trim().toLowerCase() +
+                    "|" + card.getCategory().trim().toLowerCase();
+            if (!uniqueCards.add(key)) {
+                throw new ResourceInvalidException("Duplicate flashcard detected: " + card.getFrontText());
+            }
+        }
+    }
 
     private void validateListAccess(FlashcardList list, Long userId) {
         boolean isOwner = userId.equals(list.getUser().getUserId());
