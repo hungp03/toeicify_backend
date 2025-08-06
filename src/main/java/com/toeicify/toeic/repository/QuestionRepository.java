@@ -1,6 +1,7 @@
 package com.toeicify.toeic.repository;
 
 import com.toeicify.toeic.entity.Question;
+import com.toeicify.toeic.projection.QuestionJsonProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,4 +29,10 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findByGroupGroupIdOrderByQuestionId(Long groupId);
 
     long countByGroupGroupId(Long groupId);
+
+    @Query(value = "SELECT fn_get_exam_questions_by_parts(:partIds)", nativeQuery = true)
+    QuestionJsonProjection getExamQuestionsByParts(@Param("partIds") Long[] partIds);
+
+    @Query(value = "SELECT fn_get_exam_questions_by_exam(:examId)", nativeQuery = true)
+    QuestionJsonProjection getExamQuestionsByExam(@Param("examId") Long examId);
 }
