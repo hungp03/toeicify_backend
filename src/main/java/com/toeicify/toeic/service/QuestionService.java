@@ -1,5 +1,6 @@
 package com.toeicify.toeic.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.toeicify.toeic.dto.request.question.QuestionGroupRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.question.QuestionGroupResponse;
@@ -14,6 +15,9 @@ public interface QuestionService {
     QuestionGroupResponse getQuestionGroupById(Long id);
     QuestionGroupResponse updateQuestionGroup(Long id, QuestionGroupRequest request);
     void deleteQuestionGroup(Long id);
-    List<QuestionGroupResponse> getQuestionGroupsByPartId(Long partId);
+    JsonNode getQuestionsByPartIds(List<Long> partIds);
+
+    JsonNode getExamQuestionsByExam(Long examId);
+
     PaginationResponse searchQuestionGroups(Long partId, int page, int size);
 }
