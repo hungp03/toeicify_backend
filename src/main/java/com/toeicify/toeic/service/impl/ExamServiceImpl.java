@@ -13,6 +13,7 @@ import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
 import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
 import com.toeicify.toeic.mapper.ExamMapper;
+import com.toeicify.toeic.mapper.FullTestMapper;
 import com.toeicify.toeic.repository.ExamRepository;
 import com.toeicify.toeic.service.ExamCategoryService;
 import com.toeicify.toeic.service.ExamService;
@@ -24,10 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +38,7 @@ public class ExamServiceImpl implements ExamService {
     private final ExamMapper examMapper;
     private final ExamCategoryService examCategoryService;
     private final UserService userService;
+    private  final FullTestMapper fullTestMapper;
 
     @Override
     @Transactional
@@ -159,5 +158,11 @@ public class ExamServiceImpl implements ExamService {
         } else {
             examRepository.delete(exam);
         }
+    }
+
+    @Override
+    public ExamResponse getFullExamTestById(Long id) {
+        Exam exam = examRepository.findById(id).orElseThrow(() -> new RuntimeException("Exam not found"));
+        return fullTestMapper.toExamResponse(exam);
     }
 }

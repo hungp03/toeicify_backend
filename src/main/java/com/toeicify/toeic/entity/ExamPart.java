@@ -3,6 +3,8 @@ package com.toeicify.toeic.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 
 /**
  * Created by hungpham on 7/10/2025
@@ -35,4 +37,8 @@ public class ExamPart {
 
     @Column(name = "question_count", nullable = false)
     private Integer questionCount;
+
+    @OneToMany(mappedBy = "part", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<QuestionGroup> questionGroups;
+
 }

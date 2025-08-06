@@ -53,4 +53,9 @@ public class ExamController {
         examService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/fullTest/{id}")
+        public ResponseEntity<ExamResponse> praticeFullTest(@PathVariable Long id){
+        return  ResponseEntity.ok((examService.getFullExamTestById(id)));
+    }
 }
