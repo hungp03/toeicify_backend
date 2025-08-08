@@ -5,16 +5,15 @@ package com.toeicify.toeic.dto.request.question;
  */
 import com.toeicify.toeic.util.enums.QuestionType;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 
 import java.util.List;
 
 public record QuestionRequest(
         Long questionId, // null khi tạo mới
-
+        @NotNull
+        @Min(1)
+        Integer questionNumber,
         String questionText, // maybe null
 
         @NotNull(message = "Question type is required")

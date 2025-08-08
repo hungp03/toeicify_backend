@@ -22,6 +22,7 @@ import com.toeicify.toeic.service.QuestionService;
 import com.toeicify.toeic.util.validator.PartStructureValidator;
 import com.toeicify.toeic.util.validator.QuestionGroupValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -156,6 +157,7 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
+    @Cacheable(value = "toeicPart", keyGenerator = "toeicPartKeyGenerator")
     public JsonNode getQuestionsByPartIds(List<Long> partIds) {
         if (partIds == null || partIds.isEmpty()) {
             throw new IllegalArgumentException("partIds must not be empty");
@@ -178,6 +180,11 @@ public class QuestionServiceImpl implements QuestionService {
 
 
     @Override
+    @Cacheable(
+            value = "toeicExam",
+            key = "'examDetail:' + #examId",
+            condition = "#examId != null"
+    )
     public JsonNode getExamQuestionsByExam(Long examId) {
         String json = questionRepository
                 .getExamQuestionsByExam(examId)
