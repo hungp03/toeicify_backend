@@ -16,7 +16,6 @@ public enum QuestionType {
     READING_SINGLE_PASSAGE("Reading - Single Passage"),
     READING_DOUBLE_PASSAGE("Reading - Double Passage"),
     READING_TRIPLE_PASSAGE("Reading - Triple Passage");
-
     private final String description;
 
     QuestionType(String description) {

@@ -27,6 +27,9 @@ public class Question {
     @JoinColumn(name = "group_id", nullable = false)
     private QuestionGroup group;
 
+    @Column(nullable = false)
+    private Integer questionNumber;
+
     @Column(columnDefinition = "TEXT")
     private String questionText;
 

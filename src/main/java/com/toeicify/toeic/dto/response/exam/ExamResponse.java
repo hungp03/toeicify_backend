@@ -5,6 +5,8 @@ package com.toeicify.toeic.dto.response.exam;
  */
 import com.toeicify.toeic.dto.response.exampart.ExamPartResponse;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
 
@@ -21,5 +23,8 @@ public record ExamResponse(
         Long createdById,
         String createdByName,
         List<ExamPartResponse> examParts
-) {}
+) implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
+}
 
