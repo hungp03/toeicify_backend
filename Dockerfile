@@ -1,17 +1,43 @@
+#FROM maven:3.9.6-eclipse-temurin-21 AS build
+#WORKDIR /app
+#
+## Copy pom.xml and install dependencies
+#COPY pom.xml .
+#RUN mvn -B -q dependency:go-offline
+#
+## Copy source code and build the jar
+#COPY src ./src
+#RUN mvn -B -DskipTests clean package
+#
+#FROM eclipse-temurin:21-jre
+#WORKDIR /app
+## copy from stage build
+#COPY --from=build /app/target/toeic.jar app.jar
+#EXPOSE 8080
+#ENTRYPOINT ["java", "-jar", "app.jar"]
+
+
+# ===== Stage 1: Build JAR =====
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# Copy pom.xml and install dependencies
+# Cache dependencies
 COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
 
-# Copy source code and build the jar
+# Build JAR
 COPY src ./src
 RUN mvn -B -DskipTests clean package
 
-FROM eclipse-temurin:21-jre
+# ===== Stage 2: Lite runtime =====
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-# copy from stage build
+
+# Copy JAR from build stage
 COPY --from=build /app/target/toeic.jar app.jar
+
+# JVM options
+ENV JAVA_OPTS="-Xmx256m -Xms64m -XX:+UseSerialGC"
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

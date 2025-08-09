@@ -55,8 +55,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/exam-categories/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/exam-categories/**").hasRole("ADMIN")
 
-                        .requestMatchers(HttpMethod.POST, "api/media/upload").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "api/media/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/media/upload").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/media/**").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.POST, "/api/question-groups").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/question-groups/**").hasRole("ADMIN")

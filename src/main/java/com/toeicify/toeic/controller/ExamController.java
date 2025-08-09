@@ -1,11 +1,15 @@
 package com.toeicify.toeic.controller;
 
 import com.toeicify.toeic.dto.request.exam.ExamRequest;
+import com.toeicify.toeic.dto.request.exam.SubmitExamRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.exam.ExamResponse;
-import com.toeicify.toeic.entity.Exam;
+import com.toeicify.toeic.dto.response.exam.ExamResultDetailResponse;
+import com.toeicify.toeic.dto.response.exam.ExamSubmissionResponse;
 import com.toeicify.toeic.service.ExamService;
+import com.toeicify.toeic.service.impl.UserAttemptServiceImpl;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("api/exams")
 public class ExamController {
     private final ExamService examService;
+    private final UserAttemptServiceImpl userAttemptService;
 
     @PostMapping
     public ResponseEntity<ExamResponse> createExam(@Valid @RequestBody ExamRequest exam) {
@@ -52,5 +57,19 @@ public class ExamController {
     public ResponseEntity<ExamResponse> deleteExam(@PathVariable Long id) {
         examService.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("submit")
+    public ResponseEntity<ExamSubmissionResponse> submitExam(
+            @RequestBody @Valid SubmitExamRequest request) {
+        ExamSubmissionResponse response = userAttemptService.submitExam(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/attempts/{attemptId}/result")
+    public ResponseEntity<ExamResultDetailResponse> getExamResult(
+            @PathVariable @Positive Long attemptId) {
+        ExamResultDetailResponse result = userAttemptService.getExamResult(attemptId);
+        return ResponseEntity.ok(result);
     }
 }
