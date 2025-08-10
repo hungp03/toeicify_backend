@@ -16,9 +16,9 @@ import java.util.List;
  */
 @Repository
 public interface UserAttemptRepository extends JpaRepository<UserAttempt, Long> {
-
-    @Query(value = "SELECT * FROM submit_exam_and_calculate_score(:userId, :examId, " +
-            "CAST(:answers AS jsonb), :startTime, :endTime, :isFullTest)",
+    @Query(value = "SELECT * FROM submit_exam_and_calculate_score(" +
+            ":userId, :examId, CAST(:answers AS jsonb), " +
+            ":startTime, :endTime, :isFullTest, :partIds)",
             nativeQuery = true)
     List<Object[]> submitExamAndCalculateScore(
             @Param("userId") Long userId,
@@ -26,7 +26,8 @@ public interface UserAttemptRepository extends JpaRepository<UserAttempt, Long> 
             @Param("answers") String answers,
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime,
-            @Param("isFullTest") Boolean isFullTest
+            @Param("isFullTest") Boolean isFullTest,
+            @Param("partIds") Long[] partIds
     );
 
     @Query(value = "SELECT get_attempt_detail_with_answers(:attemptId) as attempt_detail",
