@@ -158,7 +158,7 @@ public class ExamValidator {
             List<Integer> readingParts = new ArrayList<>();
 
             for (Object[] row : partDetails) {
-                Integer partNumber = ((Number) row[1]).intValue(); // Assuming part_number is at index 1
+                int partNumber = ((Number) row[1]).intValue(); // Assuming part_number is at index 1
                 if (partNumber >= 1 && partNumber <= 4) {
                     listeningParts.add(partNumber);
                 } else if (partNumber >= 5 && partNumber <= 7) {
@@ -181,8 +181,8 @@ public class ExamValidator {
     }
 
     public void validateUserOwnsAttempt(Long userId, Long attemptId) {
-        // This would typically query the database to verify ownership
-        // For now, we'll assume the PostgreSQL function handles this
-        //log.debug("Validating user {} owns attempt {}", userId, attemptId);
+        if (!userAttemptRepository.existsOwnedBy(attemptId, userId)) {
+            throw new ResourceInvalidException("Attempt " + attemptId + " does not belong to user " + userId);
+        }
     }
 }
