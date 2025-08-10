@@ -38,6 +38,10 @@ public class ExamController {
     public ResponseEntity<ExamResponse> getExamById(@PathVariable Long id) {
         return ResponseEntity.ok(examService.getExamById(id));
     }
+    @GetMapping("/{id}/fresh")
+    public ResponseEntity<ExamResponse> getExamByIdFresh(@PathVariable Long id) {
+        return ResponseEntity.ok(examService.getExamByIdFresh(id));
+    }
 
     @PutMapping("/{id}")
     public ResponseEntity<ExamResponse> updateExam(

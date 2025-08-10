@@ -88,6 +88,39 @@ public class ExamServiceImpl implements ExamService {
         return examMapper.toExamResponse(exam);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ExamResponse getExamByIdFresh(Long id) {
+        // Load kèm parts để tránh N+1 và có đủ dữ liệu tính tổng
+        Exam exam = examRepository.findWithPartsByExamId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        // Tính lại tổng câu hỏi từ các part (Single Source of Truth)
+        int total = exam.getExamParts() == null ? 0 :
+                exam.getExamParts().stream()
+                        .map(p -> p.getQuestionCount() == null ? 0 : p.getQuestionCount())
+                        .mapToInt(Integer::intValue)
+                        .sum();
+
+        // Map sang DTO
+        ExamResponse dto = examMapper.toExamResponse(exam);
+
+        // Trả về bản DTO với totalQuestions đã được cập nhật (không ghi DB)
+        return new ExamResponse(
+                dto.examId(),
+                dto.examName(),
+                dto.examDescription(),
+                total,                             // <- override totalQuestions
+                dto.listeningAudioUrl(),
+                dto.status(),
+                dto.createdAt(),
+                dto.categoryId(),
+                dto.categoryName(),
+                dto.createdById(),
+                dto.createdByName(),
+                dto.examParts()
+        );
+    }
     @Transactional(readOnly = true)
     @Override
     public PaginationResponse searchExams(String keyword, Long categoryId, int page, int size) {

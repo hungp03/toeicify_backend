@@ -14,11 +14,13 @@ import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
 import com.toeicify.toeic.mapper.QuestionMapper;
 import com.toeicify.toeic.repository.ExamPartRepository;
+import com.toeicify.toeic.repository.ExamRepository;
 import com.toeicify.toeic.repository.QuestionGroupRepository;
 import com.toeicify.toeic.repository.QuestionRepository;
 import com.toeicify.toeic.service.QuestionService;
 import com.toeicify.toeic.util.validator.PartStructureValidator;
 import com.toeicify.toeic.util.validator.QuestionGroupValidator;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -43,34 +45,31 @@ public class QuestionServiceImpl implements QuestionService {
     private final QuestionGroupRepository questionGroupRepository;
     private final QuestionRepository questionRepository;
     private final ExamPartRepository examPartRepository;
+    private final ExamRepository examRepository;
     private final QuestionMapper questionMapper;
     private final QuestionGroupValidator questionGroupValidator;
     private final PartStructureValidator partStructureValidator;
     private final ObjectMapper objectMapper;
+    private final EntityManager em;
     @Override
     @Transactional
     public QuestionGroupResponse createQuestionGroup(QuestionGroupRequest request) {
-        // Validate basic request structure
         questionGroupValidator.validateQuestionGroup(request);
 
         ExamPart examPart = examPartRepository.findByIdForUpdate(request.partId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exam part not found"));
 
-        // Validate part-specific structure based on part number
         partStructureValidator.validatePartStructure(request, examPart.getPartNumber());
 
-        // Chặn vượt “định mức” TOEIC
-        final int expected = examPart.getExpectedQuestionCount(); // từ @Transient + ToeicPartSpec
+        final int expected = examPart.getExpectedQuestionCount();
         final int incoming = request.questions().size();
-        final int current = examPart.getQuestionCount() != null ? examPart.getQuestionCount() : 0;
+        final int current  = examPart.getQuestionCount() != null ? examPart.getQuestionCount() : 0;
         if (expected > 0 && (current + incoming) > expected) {
-            throw new ResourceInvalidException(
-                    "Adding " + incoming + " questions exceeds TOEIC limit for Part "
-                            + examPart.getPartNumber() + " (" + expected + ")."
-            );
+            throw new ResourceInvalidException("Adding " + incoming + " questions exceeds TOEIC limit for Part "
+                    + examPart.getPartNumber() + " (" + expected + ").");
         }
 
-        QuestionGroup questionGroup = QuestionGroup.builder()
+        QuestionGroup group = QuestionGroup.builder()
                 .part(examPart)
                 .passageText(request.passageText())
                 .imageUrl(request.imageUrl())
@@ -78,19 +77,24 @@ public class QuestionServiceImpl implements QuestionService {
                 .build();
 
         List<Question> questions = request.questions().stream()
-                .map(questionReq -> createQuestionFromRequest(questionReq, questionGroup))
-                .collect(Collectors.toList());
+                .map(qr -> createQuestionFromRequest(qr, group))
+                .toList();
 
-        questionGroup.setQuestions(questions);
-        QuestionGroup savedGroup = questionGroupRepository.save(questionGroup);
+        group.setQuestions(questions);
+        questionGroupRepository.save(group);
 
-        //Cập nhật questionCount cho ExamPart
+        // 1) cập nhật questionCount của part
         examPart.setQuestionCount(current + questions.size());
+        examPartRepository.save(examPart);   // <-- đảm bảo managed + dirty-checked
+        em.flush();                          // <-- FLUSH trước khi SUM
 
-        // CẬP NHẬT totalQuestions của Exam
-        recalcExamTotalQuestions(examPart.getExam());
+        // 2) tính lại total dựa trên DB đã flush
+        int total = examPartRepository.sumQuestionCountByExamId(examPart.getExam().getExamId());
+        Exam exam = examPart.getExam();
+        exam.setTotalQuestions(total);
+        examRepository.save(exam);           // <-- lưu lại exam
 
-        return questionMapper.toQuestionGroupResponse(savedGroup);
+        return questionMapper.toQuestionGroupResponse(group);
     }
 
     @Override
@@ -264,6 +268,7 @@ public class QuestionServiceImpl implements QuestionService {
         Question question = Question.builder()
                 .group(group)
                 .questionText(request.questionText())
+                .questionNumber(request.questionNumber())
                 .questionType(request.questionType())
                 .correctAnswerOption(request.correctAnswerOption())
                 .explanation(request.explanation())
