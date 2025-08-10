@@ -12,10 +12,12 @@ import lombok.*;
 @AllArgsConstructor
 public class ExamResultDetailResponse {
     private Long attemptId;
+    private Boolean isFullTest;
     private Integer totalScore;
     private Integer listeningScore;
     private Integer readingScore;
     private Double completionTimeMinutes;
+    private LocalDateTime startTime;
     private LocalDateTime submittedAt;
     private List<PartDetailResponse> partsDetail;
     private List<AnswerDetailResponse> answersDetail;

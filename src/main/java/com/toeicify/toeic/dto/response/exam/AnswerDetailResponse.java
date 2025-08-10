@@ -9,9 +9,9 @@ import lombok.*;
 @AllArgsConstructor
 public class AnswerDetailResponse {
     private Long questionId;
+    private Integer questionNumber;
     private String userAnswer;
     private String correctAnswer;
     private Boolean isCorrect;
-    private String explanation;
     private Integer partNumber;
 }
