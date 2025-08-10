@@ -48,4 +48,10 @@ public interface QuestionGroupRepository extends JpaRepository<QuestionGroup, Lo
 
     @EntityGraph(attributePaths = { "part", "questions" })
     Optional<QuestionGroup> findWithGraphByGroupId(Long id);
+
+    @Query("SELECT DISTINCT qg FROM QuestionGroup qg " +
+            "LEFT JOIN FETCH qg.questions " +
+            "WHERE qg.part.partId = :partId " +
+            "ORDER BY qg.groupId")
+    List<QuestionGroup> findByPartPartIdWithQuestions(@Param("partId") Long partId);
 }

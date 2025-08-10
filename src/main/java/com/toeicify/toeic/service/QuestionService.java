@@ -17,8 +17,7 @@ public interface QuestionService {
     QuestionGroupResponse updateQuestionGroup(Long id, QuestionGroupRequest request);
     void deleteQuestionGroup(Long id);
     JsonNode getQuestionsByPartIds(List<Long> partIds);
-
     JsonNode getExamQuestionsByExam(Long examId);
-
+    List<QuestionGroupResponse> getQuestionGroupsByPartId(Long partId);
     PaginationResponse searchQuestionGroups(Long partId, int page, int size);
 }

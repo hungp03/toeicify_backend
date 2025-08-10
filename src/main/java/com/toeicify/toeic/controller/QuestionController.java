@@ -53,6 +53,12 @@ public class QuestionController {
         questionService.deleteQuestionGroup(id);
         return ResponseEntity.ok().build();
     }
+    @GetMapping("/by-part/{partId}")
+    public ResponseEntity<List<QuestionGroupResponse>> getQuestionGroupsByPartId(
+            @PathVariable Long partId) {
+        List<QuestionGroupResponse> response = questionService.getQuestionGroupsByPartId(partId);
+        return ResponseEntity.ok(response);
+    }
 
     @GetMapping("/by-parts")
     public ResponseEntity<JsonNode> getQuestionsByPartIds(@RequestParam List<Long> partIds) {
