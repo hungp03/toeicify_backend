@@ -17,8 +17,9 @@ public record ExamPartRequest(
         @NotBlank(message = "Part name is required")
         String partName,
         String description,
+        // Tạo đề trống
         @NotNull(message = "Question count is required")
-        @Positive(message = "Part number must be a positive number")
+        @Min(0)
         Integer questionCount
         ) {
 }

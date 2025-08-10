@@ -4,11 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toeicify.toeic.dto.request.question.QuestionGroupRequest;
+import com.toeicify.toeic.dto.request.question.QuestionOptionRequest;
 import com.toeicify.toeic.dto.request.question.QuestionRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.question.QuestionExplainResponse;
 import com.toeicify.toeic.dto.response.question.QuestionGroupListItemResponse;
 import com.toeicify.toeic.dto.response.question.QuestionGroupResponse;
+import com.toeicify.toeic.entity.*;
 import com.toeicify.toeic.dto.response.question.QuestionOptionResponse;
 import com.toeicify.toeic.entity.ExamPart;
 import com.toeicify.toeic.entity.Question;
@@ -18,11 +20,13 @@ import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
 import com.toeicify.toeic.mapper.QuestionMapper;
 import com.toeicify.toeic.repository.ExamPartRepository;
+import com.toeicify.toeic.repository.ExamRepository;
 import com.toeicify.toeic.repository.QuestionGroupRepository;
 import com.toeicify.toeic.repository.QuestionRepository;
 import com.toeicify.toeic.service.QuestionService;
 import com.toeicify.toeic.util.validator.PartStructureValidator;
 import com.toeicify.toeic.util.validator.QuestionGroupValidator;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -47,23 +51,31 @@ public class QuestionServiceImpl implements QuestionService {
     private final QuestionGroupRepository questionGroupRepository;
     private final QuestionRepository questionRepository;
     private final ExamPartRepository examPartRepository;
+    private final ExamRepository examRepository;
     private final QuestionMapper questionMapper;
     private final QuestionGroupValidator questionGroupValidator;
     private final PartStructureValidator partStructureValidator;
     private final ObjectMapper objectMapper;
+    private final EntityManager em;
     @Override
     @Transactional
     public QuestionGroupResponse createQuestionGroup(QuestionGroupRequest request) {
-        // Validate basic request structure
         questionGroupValidator.validateQuestionGroup(request);
 
-        ExamPart examPart = examPartRepository.findById(request.partId())
+        ExamPart examPart = examPartRepository.findByIdForUpdate(request.partId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exam part not found"));
 
-        // Validate part-specific structure based on part number
         partStructureValidator.validatePartStructure(request, examPart.getPartNumber());
 
-        QuestionGroup questionGroup = QuestionGroup.builder()
+        final int expected = examPart.getExpectedQuestionCount();
+        final int incoming = request.questions().size();
+        final int current  = examPart.getQuestionCount() != null ? examPart.getQuestionCount() : 0;
+        if (expected > 0 && (current + incoming) > expected) {
+            throw new ResourceInvalidException("Adding " + incoming + " questions exceeds TOEIC limit for Part "
+                    + examPart.getPartNumber() + " (" + expected + ").");
+        }
+
+        QuestionGroup group = QuestionGroup.builder()
                 .part(examPart)
                 .passageText(request.passageText())
                 .imageUrl(request.imageUrl())
@@ -71,13 +83,24 @@ public class QuestionServiceImpl implements QuestionService {
                 .build();
 
         List<Question> questions = request.questions().stream()
-                .map(questionReq -> createQuestionFromRequest(questionReq, questionGroup))
+                .map(qr -> createQuestionFromRequest(qr, group))
                 .toList();
 
-        questionGroup.setQuestions(questions);
+        group.setQuestions(questions);
+        questionGroupRepository.save(group);
 
-        QuestionGroup savedGroup = questionGroupRepository.save(questionGroup);
-        return questionMapper.toQuestionGroupResponse(savedGroup);
+        // 1) cập nhật questionCount của part
+        examPart.setQuestionCount(current + questions.size());
+        examPartRepository.save(examPart);   // <-- đảm bảo managed + dirty-checked
+        em.flush();                          // <-- FLUSH trước khi SUM
+
+        // 2) tính lại total dựa trên DB đã flush
+        int total = examPartRepository.sumQuestionCountByExamId(examPart.getExam().getExamId());
+        Exam exam = examPart.getExam();
+        exam.setTotalQuestions(total);
+        examRepository.save(exam);           // <-- lưu lại exam
+
+        return questionMapper.toQuestionGroupResponse(group);
     }
 
     @Override
@@ -105,57 +128,62 @@ public class QuestionServiceImpl implements QuestionService {
         return questionMapper.toQuestionGroupResponse(questionGroup);
     }
 
+
     @Override
     @Transactional
     public QuestionGroupResponse updateQuestionGroup(Long id, QuestionGroupRequest request) {
-        // Validate basic request structure
         questionGroupValidator.validateQuestionGroup(request);
 
-        // Step 1: Get QuestionGroup with Questions
-        QuestionGroup questionGroup = questionGroupRepository.findByIdWithQuestions(id)
+        // ĐÃ đủ questions + options nhờ EntityGraph
+        QuestionGroup questionGroup = questionGroupRepository.findWithGraphByGroupId(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Question group not found"));
 
         ExamPart examPart = examPartRepository.findById(request.partId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exam part not found"));
 
-        // Validate part-specific structure based on part number
         partStructureValidator.validatePartStructure(request, examPart.getPartNumber());
 
-        // Step 2: Get Questions with Options separately
-        List<Question> questionsWithOptions = questionRepository.findByGroupGroupIdWithOptions(id);
-
-        // Step 3: Set options to questions
-        Map<Long, List<QuestionOption>> optionsByQuestionId = questionsWithOptions.stream()
-                .collect(Collectors.toMap(
-                        Question::getQuestionId,
-                        q -> q.getOptions() != null ? q.getOptions() : new ArrayList<>()
-                ));
-
-        // Update questions with their options
-        questionGroup.getQuestions().forEach(question -> {
-            question.setOptions(optionsByQuestionId.get(question.getQuestionId()));
-        });
-
-        // Update group properties
+        // Update group fields
         questionGroup.setPart(examPart);
         questionGroup.setPassageText(request.passageText());
         questionGroup.setImageUrl(request.imageUrl());
         questionGroup.setAudioUrl(request.audioUrl());
 
-        // Handle questions update
+        // Upsert questions + options trên collection managed
+        int beforeCount = questionGroup.getQuestions() != null ? questionGroup.getQuestions().size() : 0;
         updateQuestionsForGroup(questionGroup, request.questions());
+        int afterCount  = questionGroup.getQuestions() != null ? questionGroup.getQuestions().size() : 0;
 
         QuestionGroup savedGroup = questionGroupRepository.save(questionGroup);
+
+        // CẬP NHẬT questionCount của Part (chênh lệch)
+        int partCurrent = examPart.getQuestionCount() != null ? examPart.getQuestionCount() : 0;
+        examPart.setQuestionCount(partCurrent + (afterCount - beforeCount));
+
+        // CẬP NHẬT totalQuestions của Exam
+        recalcExamTotalQuestions(examPart.getExam());
+
         return questionMapper.toQuestionGroupResponse(savedGroup);
     }
 
     @Override
     @Transactional
     public void deleteQuestionGroup(Long id) {
-        if (!questionGroupRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Question group not found");
-        }
+        QuestionGroup group = questionGroupRepository.findByIdWithQuestions(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Question group not found"));
+        ExamPart part = examPartRepository.findByIdForUpdate(group.getPart().getPartId())
+                .orElseThrow(() -> new ResourceNotFoundException("Exam part not found"));
+
+        int removed = group.getQuestions() != null ? group.getQuestions().size() : 0;
+
         questionGroupRepository.deleteById(id);
+
+        // cập nhật questionCount của part
+        int current = part.getQuestionCount() != null ? part.getQuestionCount() : 0;
+        part.setQuestionCount(Math.max(0, current - removed));
+
+        // cập nhật tổng đề
+        recalcExamTotalQuestions(part.getExam());
     }
 
     @Override
@@ -180,6 +208,37 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<QuestionGroupResponse> getQuestionGroupsByPartId(Long partId) {
+        // Step 1: Get QuestionGroups with Questions
+        List<QuestionGroup> groups = questionGroupRepository.findByPartPartIdWithQuestions(partId);
+
+        // Step 2: Get all Questions with Options for this part
+        List<Question> allQuestionsWithOptions = groups.stream()
+                .flatMap(group -> questionRepository.findByGroupGroupIdWithOptions(group.getGroupId()).stream())
+                .collect(Collectors.toList());
+
+        // Step 3: Group options by question ID
+        Map<Long, List<QuestionOption>> optionsByQuestionId = allQuestionsWithOptions.stream()
+                .collect(Collectors.toMap(
+                        Question::getQuestionId,
+                        q -> q.getOptions() != null ? q.getOptions() : new ArrayList<>()
+                ));
+
+        // Step 4: Set options to questions
+        groups.forEach(group -> {
+            if (group.getQuestions() != null) {
+                group.getQuestions().forEach(question -> {
+                    question.setOptions(optionsByQuestionId.get(question.getQuestionId()));
+                });
+            }
+        });
+
+        return groups.stream()
+                .map(questionMapper::toQuestionGroupResponse)
+                .collect(Collectors.toList());
+    }
 
     @Override
     @Cacheable(
@@ -215,18 +274,31 @@ public class QuestionServiceImpl implements QuestionService {
         Question question = Question.builder()
                 .group(group)
                 .questionText(request.questionText())
+                .questionNumber(request.questionNumber())
                 .questionType(request.questionType())
                 .correctAnswerOption(request.correctAnswerOption())
                 .explanation(request.explanation())
                 .build();
 
-        List<QuestionOption> options = request.options().stream()
-                .map(optionReq -> QuestionOption.builder()
-                        .question(question)
-                        .optionLetter(optionReq.optionLetter())
-                        .optionText(optionReq.optionText())
-                        .build())
-                .toList();
+//        List<QuestionOption> options = request.options().stream()
+//                .map(optionReq -> QuestionOption.builder()
+//                        .question(question)
+//                        .optionLetter(optionReq.optionLetter())
+//                        .optionText(optionReq.optionText())
+//                        .build())
+//                .toList();
+        List<QuestionOption> opts = request.options().stream()
+                .map(o -> {
+                    QuestionOption opt = QuestionOption.builder()
+                            .optionLetter(o.optionLetter())
+                            .optionText(o.optionText())
+                            .build();
+                    opt.setQuestion(question); // <<< Owning side MUST be set
+                    return opt;
+                })
+                .collect(Collectors.toList());   // <— mutable
+
+        question.setOptions(opts); // set inverse side
 
         // Note: We need to add options to Question entity if there's a relationship
         // This depends on your Question entity structure
@@ -235,47 +307,82 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     private void updateQuestionsForGroup(QuestionGroup group, List<QuestionRequest> questionRequests) {
-        // Get existing questions mapped by ID
+        if (group.getQuestions() == null) group.setQuestions(new ArrayList<>());
+
         Map<Long, Question> existingQuestions = group.getQuestions().stream()
                 .filter(q -> q.getQuestionId() != null)
                 .collect(Collectors.toMap(Question::getQuestionId, q -> q));
 
-        // Get incoming question IDs
         Set<Long> incomingQuestionIds = questionRequests.stream()
                 .map(QuestionRequest::questionId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // Remove questions not in the request
-        group.getQuestions().removeIf(question ->
-                question.getQuestionId() != null && !incomingQuestionIds.contains(question.getQuestionId()));
+        // remove questions không còn
+        group.getQuestions().removeIf(q ->
+                q.getQuestionId() != null && !incomingQuestionIds.contains(q.getQuestionId()));
 
-        for (QuestionRequest questionReq : questionRequests) {
-            if (questionReq.questionId() != null) {
-                // Update existing question
-                Question existingQuestion = existingQuestions.get(questionReq.questionId());
-                if (existingQuestion != null) {
-                    updateExistingQuestion(existingQuestion, questionReq);
-                } else {
-                    throw new ResourceInvalidException("Question not found: ID " + questionReq.questionId());
+        for (QuestionRequest qr : questionRequests) {
+            if (qr.questionId() != null) {
+                Question existing = existingQuestions.get(qr.questionId());
+                if (existing == null) {
+                    throw new ResourceInvalidException("Question not found: ID " + qr.questionId());
                 }
+                updateExistingQuestion(existing, qr);   // << upsert options được gọi ở đây
             } else {
-                // Add new question
-                Question newQuestion = createQuestionFromRequest(questionReq, group);
-                group.getQuestions().add(newQuestion);
+                Question created = createQuestionFromRequest(qr, group); // đã add đủ options
+                group.getQuestions().add(created);
             }
         }
     }
 
     private void updateExistingQuestion(Question question, QuestionRequest request) {
+        // fields
         question.setQuestionText(request.questionText());
         question.setQuestionType(request.questionType());
         question.setCorrectAnswerOption(request.correctAnswerOption());
         question.setExplanation(request.explanation());
 
-        // Update options if Question has options relationship
-        // This part depends on your entity relationships
-        // You might need to implement updateOptionsForQuestion method similar to updateQuestionsForGroup
+        // === UPSERT OPTIONS ===
+        upsertOptions(question, request.options());
+    }
+
+    private void upsertOptions(Question question, List<QuestionOptionRequest> reqOptions) {
+        if (question.getOptions() == null) {
+            question.setOptions(new ArrayList<>());
+        }
+
+        // map option hiện có theo id
+        Map<Long, QuestionOption> existing = question.getOptions().stream()
+                .filter(o -> o.getOptionId() != null)
+                .collect(Collectors.toMap(QuestionOption::getOptionId, o -> o));
+
+        // các id option sẽ giữ lại
+        Set<Long> keepIds = reqOptions.stream()
+                .map(QuestionOptionRequest::optionId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // xoá option không còn trong request (orphanRemoval = true sẽ xoá DB)
+        question.getOptions().removeIf(o -> o.getOptionId() != null && !keepIds.contains(o.getOptionId()));
+
+        // upsert từng option theo request
+        for (QuestionOptionRequest ro : reqOptions) {
+            QuestionOption opt = (ro.optionId() != null) ? existing.get(ro.optionId()) : null;
+            if (opt == null) {
+                opt = new QuestionOption();
+                opt.setQuestion(question);         // owning side MUST be set
+                question.getOptions().add(opt);    // thêm vào collection managed
+            }
+            opt.setOptionLetter(ro.optionLetter());
+            opt.setOptionText(ro.optionText());
+        }
+    }
+
+    // Helper //
+    private void recalcExamTotalQuestions(Exam exam) {
+        int total = examPartRepository.sumQuestionCountByExamId(exam.getExamId());
+        exam.setTotalQuestions(total);
     }
 
     @Override

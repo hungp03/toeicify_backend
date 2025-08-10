@@ -39,9 +39,9 @@ public class PartStructureValidator {
             throw new ResourceInvalidException("Part 1 must have audioUrl");
         }
 
-        if (request.passageText() != null && !request.passageText().trim().isEmpty()) {
-            throw new ResourceInvalidException("Part 1 should not have passageText");
-        }
+//        if (request.passageText() != null && !request.passageText().trim().isEmpty()) {
+//            throw new ResourceInvalidException("Part 1 should not have passageText");
+//        }
 
         // Validate question type
         QuestionType questionType = request.questions().get(0).questionType();
@@ -64,9 +64,9 @@ public class PartStructureValidator {
             throw new ResourceInvalidException("Part 2 should not have imageUrl");
         }
 
-        if (request.passageText() != null && !request.passageText().trim().isEmpty()) {
-            throw new ResourceInvalidException("Part 2 should not have passageText");
-        }
+//        if (request.passageText() != null && !request.passageText().trim().isEmpty()) {
+//            throw new ResourceInvalidException("Part 2 should not have passageText");
+//        }
 
         // Validate question type
         QuestionType questionType = request.questions().get(0).questionType();
@@ -89,9 +89,9 @@ public class PartStructureValidator {
             throw new ResourceInvalidException("Part 3 should not have imageUrl");
         }
 
-        if (request.passageText() != null && !request.passageText().trim().isEmpty()) {
-            throw new ResourceInvalidException("Part 3 should not have passageText");
-        }
+//        if (request.passageText() != null && !request.passageText().trim().isEmpty()) {
+//            throw new ResourceInvalidException("Part 3 should not have passageText");
+//        }
 
         // Validate all questions are LISTENING_CONVERSATION type
         request.questions().forEach(question -> {
@@ -115,9 +115,9 @@ public class PartStructureValidator {
             throw new ResourceInvalidException("Part 4 should not have imageUrl");
         }
 
-        if (request.passageText() != null && !request.passageText().trim().isEmpty()) {
-            throw new ResourceInvalidException("Part 4 should not have passageText");
-        }
+//        if (request.passageText() != null && !request.passageText().trim().isEmpty()) {
+//            throw new ResourceInvalidException("Part 4 should not have passageText");
+//        }
 
         // Validate all questions are LISTENING_TALK type
         request.questions().forEach(question -> {
@@ -180,10 +180,11 @@ public class PartStructureValidator {
         if (questionCount < 1 || questionCount > 5) {
             throw new ResourceInvalidException("Part 7 must have 1-5 questions per group");
         }
+        // Có thể có ảnh của đoạn văn thay vì text
 
-        if (request.passageText() == null || request.passageText().trim().isEmpty()) {
-            throw new ResourceInvalidException("Part 7 must have passageText");
-        }
+//        if (request.passageText() == null || request.passageText().trim().isEmpty()) {
+//            throw new ResourceInvalidException("Part 7 must have passageText");
+//        }
 
         if (request.audioUrl() != null && !request.audioUrl().trim().isEmpty()) {
             throw new ResourceInvalidException("Part 7 should not have audioUrl");

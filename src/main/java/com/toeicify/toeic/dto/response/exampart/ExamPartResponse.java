@@ -11,9 +11,9 @@ public record ExamPartResponse(
         Integer partNumber,
         String partName,
         String description,
-        Integer questionCount
+        Integer questionCount,
+        Integer expectedQuestionCount
 ) implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 }
-

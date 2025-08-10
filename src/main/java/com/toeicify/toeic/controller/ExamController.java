@@ -8,6 +8,9 @@ import com.toeicify.toeic.dto.response.exam.ExamResponse;
 import com.toeicify.toeic.dto.response.exam.ExamResultDetailResponse;
 import com.toeicify.toeic.dto.response.exam.ExamSubmissionResponse;
 import com.toeicify.toeic.service.ExamService;
+import com.toeicify.toeic.util.annotation.ApiMessage;
+import com.toeicify.toeic.util.enums.ExamStatus;
+import com.toeicify.toeic.service.impl.UserAttemptServiceImpl;
 import com.toeicify.toeic.service.UserAttemptService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -35,6 +38,10 @@ public class ExamController {
     public ResponseEntity<ExamResponse> getExamById(@PathVariable Long id) {
         return ResponseEntity.ok(examService.getExamById(id));
     }
+    @GetMapping("/{id}/fresh")
+    public ResponseEntity<ExamResponse> getExamByIdFresh(@PathVariable Long id) {
+        return ResponseEntity.ok(examService.getExamByIdFresh(id));
+    }
 
     @PutMapping("/{id}")
     public ResponseEntity<ExamResponse> updateExam(
@@ -60,6 +67,17 @@ public class ExamController {
         return ResponseEntity.noContent().build();
     }
 
+
+    @PatchMapping("/{id}/status")
+    @ApiMessage("Update exam status")
+    public ResponseEntity<ExamResponse> updateExamStatus(
+            @PathVariable Long id,
+            @RequestParam ExamStatus status
+    ) {
+        return ResponseEntity.ok(examService.updateStatus(id, status));
+    }
+
+
     @PostMapping("submit")
     public ResponseEntity<ExamSubmissionResponse> submitExam(
             @RequestBody @Valid SubmitExamRequest request) throws JsonProcessingException {
@@ -73,4 +91,5 @@ public class ExamController {
         ExamResultDetailResponse result = userAttemptService.getExamResult(attemptId);
         return ResponseEntity.ok(result);
     }
+
 }

@@ -10,6 +10,9 @@ import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.service.QuestionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -50,6 +53,12 @@ public class QuestionController {
     public ResponseEntity<Void> deleteQuestionGroup(@PathVariable Long id) {
         questionService.deleteQuestionGroup(id);
         return ResponseEntity.ok().build();
+    }
+    @GetMapping("/by-part/{partId}")
+    public ResponseEntity<List<QuestionGroupResponse>> getQuestionGroupsByPartId(
+            @PathVariable Long partId) {
+        List<QuestionGroupResponse> response = questionService.getQuestionGroupsByPartId(partId);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/by-parts")

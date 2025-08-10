@@ -6,6 +6,8 @@ import com.toeicify.toeic.dto.response.examcategory.ExamCategoryResponse;
 import com.toeicify.toeic.entity.ExamCategory;
 import org.springframework.data.domain.Page;
 
+import java.util.List;
+
 /**
  * Created by hungpham on 7/10/2025
  */
@@ -17,4 +19,5 @@ public interface ExamCategoryService {
     ExamCategoryResponse getExamCategoryById(Long id);
 
     ExamCategory findExamCategoryById(Long id);
+    List<ExamCategoryResponse> getAllExamCategoriesList();
 }

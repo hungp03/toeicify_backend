@@ -4,6 +4,7 @@ import com.toeicify.toeic.service.MediaService;
 import com.toeicify.toeic.util.annotation.ApiMessage;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,10 +20,19 @@ import java.io.IOException;
 public class MediaController {
     private final MediaService mediaService;
 
-    @PostMapping("/upload")
-    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file, @RequestParam(name = "folder", defaultValue = "uploads") String folder ) throws IOException {
+//    @PostMapping("/upload")
+//    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file, @RequestParam(name = "folder", defaultValue = "uploads") String folder ) throws IOException {
+//        String key = mediaService.uploadFile(file, folder);
+//        return ResponseEntity.ok(key);
+//    }
+
+    @PostMapping(value = "/upload", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> upload(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(name = "folder", defaultValue = "uploads") String folder
+    ) throws IOException {
         String key = mediaService.uploadFile(file, folder);
-        return ResponseEntity.ok(key);
+        return ResponseEntity.ok(key); // key là public URL bạn trả về
     }
 
 //    @GetMapping("/signed-url")

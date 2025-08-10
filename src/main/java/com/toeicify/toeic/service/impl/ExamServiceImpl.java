@@ -72,6 +72,9 @@ public class ExamServiceImpl implements ExamService {
 
         exam.setExamParts(parts);
 
+        // Đề thi mới tạo mặc định đang chờ thêm câu hỏi
+        exam.setStatus(ExamStatus.PENDING);
+
         Exam savedExam = examRepository.save(exam);
         return examMapper.toExamResponse(savedExam);
     }
@@ -85,6 +88,39 @@ public class ExamServiceImpl implements ExamService {
         return examMapper.toExamResponse(exam);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ExamResponse getExamByIdFresh(Long id) {
+        // Load kèm parts để tránh N+1 và có đủ dữ liệu tính tổng
+        Exam exam = examRepository.findWithPartsByExamId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        // Tính lại tổng câu hỏi từ các part (Single Source of Truth)
+        int total = exam.getExamParts() == null ? 0 :
+                exam.getExamParts().stream()
+                        .map(p -> p.getQuestionCount() == null ? 0 : p.getQuestionCount())
+                        .mapToInt(Integer::intValue)
+                        .sum();
+
+        // Map sang DTO
+        ExamResponse dto = examMapper.toExamResponse(exam);
+
+        // Trả về bản DTO với totalQuestions đã được cập nhật (không ghi DB)
+        return new ExamResponse(
+                dto.examId(),
+                dto.examName(),
+                dto.examDescription(),
+                total,                             // <- override totalQuestions
+                dto.listeningAudioUrl(),
+                dto.status(),
+                dto.createdAt(),
+                dto.categoryId(),
+                dto.categoryName(),
+                dto.createdById(),
+                dto.createdByName(),
+                dto.examParts()
+        );
+    }
     @Transactional(readOnly = true)
     @Override
     public PaginationResponse searchExams(String keyword, Long categoryId, int page, int size) {
@@ -154,6 +190,7 @@ public class ExamServiceImpl implements ExamService {
     public void deleteById(Long id) {
         Exam exam = examRepository.findWithPartsByExamId(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
+
         boolean hasParts = exam.getExamParts() != null && !exam.getExamParts().isEmpty();
         if (hasParts) {
             exam.setStatus(ExamStatus.CANCELLED);
@@ -161,5 +198,87 @@ public class ExamServiceImpl implements ExamService {
         } else {
             examRepository.delete(exam);
         }
+    }
+
+    @Override
+    @Transactional
+    public ExamResponse updateStatus(Long id, ExamStatus newStatus) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
+
+        ExamStatus currentStatus = exam.getStatus();
+
+        // ===== Logic chuyển đổi trạng thái =====
+        // 1. CANCELLED -> PUBLIC: Không cho phép khôi phục trực tiếp đề đã hủy để public
+        if (newStatus == ExamStatus.PUBLIC && currentStatus == ExamStatus.CANCELLED) {
+            throw new ResourceInvalidException("Không thể công khai đề thi đã bị hủy");
+        }
+
+        // 2. Chuyển sang PUBLIC: chỉ cho phép khi đề đủ câu hỏi (vd: TOEIC 200 câu / 7 part)
+        if ((newStatus == ExamStatus.PUBLIC) &&
+                !isAllExistingPartsCompleted(exam)) {
+            throw new ResourceInvalidException(
+                    "Không thể chuyển từ " + currentStatus + " sang " + newStatus + " vì một số part chưa đủ số câu hỏi."
+            );
+        }
+
+        // 3. Chuyển sang PENDING:
+        // - Không cho phép nếu đề đã công khai (PUBLIC) hoặc đã đủ câu hỏi (coi như hoàn thiện)
+        if (newStatus == ExamStatus.PENDING && currentStatus == ExamStatus.PUBLIC) {
+            throw new ResourceInvalidException("Không thể chuyển đề thi công khai về trạng thái đang chờ. Nếu muốn chỉnh sửa đề vui lòng chuyển qua Riêng tư.");
+        }
+        if (newStatus == ExamStatus.PENDING &&
+                currentStatus == ExamStatus.PRIVATE && isAllExistingPartsCompleted(exam)) {
+            throw new ResourceInvalidException("Không thể chuyển đề đã đủ câu hỏi về trạng thái đang chờ.");
+        }
+        if (currentStatus == ExamStatus.CANCELLED && newStatus == ExamStatus.PENDING) {
+            if (isAllExistingPartsCompleted(exam)) {
+                throw new ResourceInvalidException("Không thể chuyển đề đã đủ câu hỏi về trạng thái đang chờ.. Nếu muốn chỉnh sửa đề vui lòng chuyển qua Riêng tư.");
+            }
+        }
+
+        // 4. Chuyển từ CANCELLED -> PRIVATE:
+        // - Cho phép khôi phục nhưng yêu cầu confirm (frontend nên có xác nhận)
+        // - Không cần block trong backend vì đã yêu cầu confirm từ UI
+
+        // 5. Các trường hợp khác (PRIVATE -> PUBLIC, PRIVATE -> CANCELLED, PENDING -> PRIVATE...)
+        // - Cho phép tự do chuyển đổi
+
+        exam.setStatus(newStatus);
+        Exam savedExam = examRepository.save(exam);
+
+        return examMapper.toExamResponse(savedExam);
+    }
+
+    // Kiểm tra exam đã đủ số lượng câu hỏi cần thiết chưa
+    public boolean isAllExistingPartsCompleted(Exam exam) {
+        if (exam.getExamParts() == null || exam.getExamParts().isEmpty()) return false;
+
+        // Quy định số câu hỏi tối thiểu cho từng Part theo chuẩn TOEIC
+        Map<Integer, Integer> requiredPerPart = Map.of(
+                1, 6,
+                2, 25,
+                3, 39,
+                4, 30,
+                5, 30,
+                6, 16,
+                7, 54
+        );
+
+        for (ExamPart part : exam.getExamParts()) {
+            int partNumber = part.getPartNumber();
+            int actualCount = part.getQuestionCount();
+
+            Integer requiredCount = requiredPerPart.get(partNumber);
+            if (requiredCount == null) {
+                continue; // Bỏ qua nếu không xác định yêu cầu cho Part đó
+            }
+
+            if (actualCount < requiredCount) {
+                return false; // Ít hơn yêu cầu
+            }
+        }
+
+        return true; // Tất cả Part hiện có đều đủ số lượng
     }
 }

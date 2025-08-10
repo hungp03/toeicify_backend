@@ -1,6 +1,7 @@
 package com.toeicify.toeic.repository;
 
 import com.toeicify.toeic.entity.Question;
+import com.toeicify.toeic.entity.QuestionGroup;
 import com.toeicify.toeic.projection.QuestionJsonProjection;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -30,6 +31,12 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findByGroupGroupIdOrderByQuestionId(Long groupId);
 
     long countByGroupGroupId(Long groupId);
+
+    // Đếm tổng số câu hỏi thuộc 1 part
+    long countByGroupPartPartId(Long partId);
+
+    // biết có tồn tại câu hỏi nào không (nhanh hơn COUNT)
+    boolean existsByGroupPartPartId(Long partId);
 
     @Query(value = "SELECT fn_get_exam_questions_by_parts(:partIds)", nativeQuery = true)
     QuestionJsonProjection getExamQuestionsByParts(@Param("partIds") Long[] partIds);
