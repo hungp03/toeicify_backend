@@ -1,5 +1,8 @@
 package com.toeicify.toeic.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toeicify.toeic.dto.request.question.QuestionGroupRequest;
 import com.toeicify.toeic.dto.request.question.QuestionOptionRequest;
 import com.toeicify.toeic.dto.request.question.QuestionRequest;
@@ -17,6 +20,7 @@ import com.toeicify.toeic.service.QuestionService;
 import com.toeicify.toeic.util.validator.PartStructureValidator;
 import com.toeicify.toeic.util.validator.QuestionGroupValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -42,7 +46,7 @@ public class QuestionServiceImpl implements QuestionService {
     private final QuestionMapper questionMapper;
     private final QuestionGroupValidator questionGroupValidator;
     private final PartStructureValidator partStructureValidator;
-
+    private final ObjectMapper objectMapper;
     @Override
     @Transactional
     public QuestionGroupResponse createQuestionGroup(QuestionGroupRequest request) {
@@ -173,35 +177,48 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<QuestionGroupResponse> getQuestionGroupsByPartId(Long partId) {
-        // Step 1: Get QuestionGroups with Questions
-        List<QuestionGroup> groups = questionGroupRepository.findByPartPartIdWithQuestions(partId);
+    @Cacheable(value = "toeicPart", keyGenerator = "toeicPartKeyGenerator")
+    public JsonNode getQuestionsByPartIds(List<Long> partIds) {
+        if (partIds == null || partIds.isEmpty()) {
+            throw new IllegalArgumentException("partIds must not be empty");
+        }
 
-        // Step 2: Get all Questions with Options for this part
-        List<Question> allQuestionsWithOptions = groups.stream()
-                .flatMap(group -> questionRepository.findByGroupGroupIdWithOptions(group.getGroupId()).stream())
-                .collect(Collectors.toList());
+        // Kiểm tra tất cả part thuộc cùng 1 đề thi
+        List<Long> examIds = examPartRepository.findDistinctExamIdsByPartIds(partIds);
+        if (examIds.size() != 1) {
+            throw new IllegalArgumentException("All partIds must belong to the same exam");
+        }
 
-        // Step 3: Group options by question ID
-        Map<Long, List<QuestionOption>> optionsByQuestionId = allQuestionsWithOptions.stream()
-                .collect(Collectors.toMap(
-                        Question::getQuestionId,
-                        q -> q.getOptions() != null ? q.getOptions() : new ArrayList<>()
-                ));
+        Long[] partIdArray = partIds.toArray(new Long[0]);
+        String json = questionRepository
+                .getExamQuestionsByParts(partIdArray)
+                .getFnGetExamQuestionsByParts();
 
-        // Step 4: Set options to questions
-        groups.forEach(group -> {
-            if (group.getQuestions() != null) {
-                group.getQuestions().forEach(question -> {
-                    question.setOptions(optionsByQuestionId.get(question.getQuestionId()));
-                });
-            }
-        });
+        return parseJson(json);
+    }
 
-        return groups.stream()
-                .map(questionMapper::toQuestionGroupResponse)
-                .collect(Collectors.toList());
+
+
+    @Override
+    @Cacheable(
+            value = "toeicExam",
+            key = "'examDetail:' + #examId",
+            condition = "#examId != null"
+    )
+    public JsonNode getExamQuestionsByExam(Long examId) {
+        String json = questionRepository
+                .getExamQuestionsByExam(examId)
+                .getFnGetExamQuestionsByExam();
+
+        return parseJson(json);
+    }
+
+    private JsonNode parseJson(String json) {
+        try {
+            return objectMapper.readTree(json);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Invalid JSON from DB", e);
+        }
     }
 
     @Override

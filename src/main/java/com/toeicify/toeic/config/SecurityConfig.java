@@ -35,7 +35,8 @@ public class SecurityConfig {
             "/oauth2/**",
             "/login/oauth2/callback/**",
             "/swagger-ui/**",
-            "/swagger-ui.html"};
+            "/swagger-ui.html"
+    };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -44,7 +45,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(whiteList).permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/api/exams", "/api/exams/**", "/api/exams/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/exams", "/api/exams/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/exams/search").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/exams").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/exams/**").hasRole("ADMIN")
@@ -54,6 +55,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/exam-categories/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/exam-categories/**").hasRole("ADMIN")
 
+                        .requestMatchers(HttpMethod.POST, "/api/media/upload").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/media/**").hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.POST, "/api/question-groups").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/question-groups/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/question-groups/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/question-groups/search").hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}/toggle-status").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)

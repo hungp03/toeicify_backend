@@ -1,0 +1,216 @@
+package com.toeicify.toeic.service.impl;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.toeicify.toeic.dto.request.exam.SubmitExamRequest;
+import com.toeicify.toeic.dto.response.exam.*;
+import com.toeicify.toeic.repository.UserAttemptRepository;
+import com.toeicify.toeic.util.SecurityUtil;
+import com.toeicify.toeic.util.validator.ExamValidator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Created by hungpham on 8/9/2025
+ */
+@Service
+@Transactional
+@RequiredArgsConstructor
+@Slf4j
+public class UserAttemptServiceImpl {
+    private final UserAttemptRepository userAttemptRepository;
+    private final ObjectMapper objectMapper;
+    private final ExamValidator examValidator;
+
+    public ExamSubmissionResponse submitExam(SubmitExamRequest request) {
+        try {
+            Long userId = SecurityUtil.getCurrentUserId();
+            log.info("Processing exam submission for user: {}, exam: {}", userId, request.examId());
+
+            // Validation
+            examValidator.validateExamSubmission(request);
+
+            // Convert answers to JSON
+            String answersJson = objectMapper.writeValueAsString(request.answers());
+            Boolean isFullTest = "full".equals(request.submitType());
+
+            // Call PostgreSQL function - returns table
+            List<Object[]> results = userAttemptRepository.submitExamAndCalculateScore(
+                    userId,
+                    request.examId(),
+                    answersJson,
+                    request.startTime(),
+                    request.endTime(),
+                    isFullTest
+            );
+
+            // Map result từ Object[]
+            if (results.isEmpty()) {
+                throw new RuntimeException("No result returned from database");
+            }
+
+            Object[] result = results.getFirst();
+            Long attemptId = ((Number) result[0]).longValue();
+            Integer totalScore = ((Number) result[1]).intValue();
+            Integer listeningScore = ((Number) result[2]).intValue();
+            Integer readingScore = ((Number) result[3]).intValue();
+            Double completionTime = ((Number) result[4]).doubleValue();
+            LocalDateTime submittedAt = ((Timestamp) result[5]).toLocalDateTime();
+            Integer totalQuestionsAnswered = ((Number) result[6]).intValue();
+            Integer correctAnswers = ((Number) result[7]).intValue();
+            Integer totalQuestionsInExam = ((Number) result[8]).intValue();
+            Integer totalListeningInExam = ((Number) result[9]).intValue();
+            Integer totalReadingInExam = ((Number) result[10]).intValue();
+            Integer listeningQuestionsAnswered = ((Number) result[11]).intValue();
+            Integer listeningCorrectAnswers = ((Number) result[12]).intValue();
+            Integer readingQuestionsAnswered = ((Number) result[13]).intValue();
+            Integer readingCorrectAnswers = ((Number) result[14]).intValue();
+
+            List<PartDetailResponse> partsDetail = getPartsDetailByAttempt(attemptId);
+
+            return ExamSubmissionResponse.builder()
+                    .attemptId(attemptId)
+                    .totalScore(totalScore)
+                    .listeningScore(listeningScore)
+                    .readingScore(readingScore)
+                    .completionTimeMinutes(completionTime)
+                    .submittedAt(submittedAt)
+                    .totalQuestions(totalQuestionsInExam)
+                    .totalQuestionsAnswered(totalQuestionsAnswered)
+                    .totalListeningInExam(totalListeningInExam)
+                    .totalReadingInExam(totalReadingInExam)
+                    .listeningQuestionsAnswered(listeningQuestionsAnswered)
+                    .readingQuestionsAnswered(readingQuestionsAnswered)
+                    .totalListeningCorrect(listeningCorrectAnswers)
+                    .totalReadingCorrect(readingCorrectAnswers)
+                    .totalCorrectAnswers(correctAnswers)
+                    .partsDetail(partsDetail)
+                    .examSummary(buildExamSummary(request))
+                    .build();
+
+        } catch (JsonProcessingException e) {
+            log.error("Error processing JSON for exam submission", e);
+            throw new RuntimeException("Failed to process exam submission", e);
+        } catch (Exception e) {
+            log.error("Error submitting exam", e);
+            throw new RuntimeException("Failed to submit exam", e);
+        }
+    }
+
+    private List<PartDetailResponse> getPartsDetailByAttempt(Long attemptId) {
+        List<Object[]> results = userAttemptRepository.getPartsDetailByAttempt(attemptId);
+        List<PartDetailResponse> partsDetail = new ArrayList<>();
+
+        for (Object[] row : results) {
+            partsDetail.add(PartDetailResponse.builder()
+                    .partNumber(((Number) row[1]).intValue()) // part_number
+                    .partName((String) row[2]) // part_name
+                    .correctAnswers(((Number) row[3]).intValue()) // correct_answers
+                    .totalQuestions(((Number) row[4]).intValue()) // total_questions
+                    .accuracyPercent(((Number) row[5]).doubleValue()) // accuracy_percent
+                    .build());
+        }
+
+        return partsDetail;
+    }
+
+    public ExamResultDetailResponse getExamResult(Long attemptId) {
+        try {
+            Long userId = SecurityUtil.getCurrentUserId();
+            // Validate user owns this attempt
+            examValidator.validateUserOwnsAttempt(userId, attemptId);
+
+            String resultJson = userAttemptRepository.getAttemptDetailWithAnswers(attemptId);
+            JsonNode result = objectMapper.readTree(resultJson);
+
+            return ExamResultDetailResponse.builder()
+                    .attemptId(attemptId)
+                    .totalScore(result.get("total_score").asInt())
+                    .listeningScore(result.get("listening_score").asInt())
+                    .readingScore(result.get("reading_score").asInt())
+                    .completionTimeMinutes(result.get("completion_time").asDouble())
+                    .submittedAt(LocalDateTime.parse(result.get("submitted_at").asText()))
+                    .partsDetail(parsePartsDetail(result.get("parts_detail")))
+                    .answersDetail(parseAnswersDetail(result.get("answers_detail")))
+                    .examSummary(parseExamSummary(result.get("exam_summary")))
+                    .build();
+
+        } catch (JsonProcessingException e) {
+            log.error("Error parsing exam result JSON", e);
+            throw new RuntimeException("Failed to get exam result", e);
+        }
+    }
+
+
+    // Private helper methods
+    private List<PartDetailResponse> parsePartsDetail(JsonNode partsNode) throws JsonProcessingException {
+        if (partsNode == null || !partsNode.isArray()) return Collections.emptyList();
+
+        List<PartDetailResponse> parts = new ArrayList<>();
+        for (JsonNode partNode : partsNode) {
+            parts.add(PartDetailResponse.builder()
+                    .partNumber(partNode.get("part_number").asInt())
+                    .partName(partNode.get("part_name").asText())
+                    .correctAnswers(partNode.get("correct_answers").asInt())
+                    .totalQuestions(partNode.get("total_questions").asInt())
+                    .accuracyPercent(partNode.get("accuracy_percent").asDouble())
+                    .build());
+        }
+        return parts;
+    }
+
+    private List<AnswerDetailResponse> parseAnswersDetail(JsonNode answersNode) throws JsonProcessingException {
+        if (answersNode == null || !answersNode.isArray()) return Collections.emptyList();
+
+        List<AnswerDetailResponse> answers = new ArrayList<>();
+        for (JsonNode answerNode : answersNode) {
+            answers.add(AnswerDetailResponse.builder()
+                    .questionId(answerNode.get("question_id").asLong())
+                    .userAnswer(answerNode.get("user_answer").asText())
+                    .correctAnswer(answerNode.get("correct_answer").asText())
+                    .isCorrect(answerNode.get("is_correct").asBoolean())
+                    .explanation(answerNode.get("explanation").asText())
+                    .partNumber(answerNode.get("part_number").asInt())
+                    .build());
+        }
+        return answers;
+    }
+
+    private ExamSummaryResponse buildExamSummary(SubmitExamRequest request) {
+        return ExamSummaryResponse.builder()
+                .examId(request.examId())
+                .submitType(request.submitType())
+                .partsSubmitted(request.partIds())
+                .build();
+    }
+
+    private ExamSummaryResponse parseExamSummary(JsonNode summaryNode) {
+        if (summaryNode == null) return null;
+
+        return ExamSummaryResponse.builder()
+                .examId(summaryNode.get("exam_id").asLong())
+                .examName(summaryNode.get("exam_name").asText())
+                .submitType(summaryNode.get("submit_type").asText())
+                .partsSubmitted(parsePartsList(summaryNode.get("parts_submitted")))
+                .build();
+    }
+
+    private List<Long> parsePartsList(JsonNode partsNode) {
+        if (partsNode == null || !partsNode.isArray()) return Collections.emptyList();
+
+        List<Long> parts = new ArrayList<>();
+        for (JsonNode partNode : partsNode) {
+            parts.add(partNode.asLong());
+        }
+        return parts;
+    }
+}

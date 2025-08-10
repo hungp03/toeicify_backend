@@ -8,6 +8,9 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+  devtools:
+    restart:
+      enabled: false
   security:
     oauth2:
       client:
@@ -49,7 +52,9 @@ spring:
       username: ${REDIS_USERNAME}
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD}
-#  flyway:
+      repositories:
+        enabled: false
+  #  flyway:
 #    enabled: true
 #    baseline-on-migrate: true
   mail:
@@ -74,7 +79,7 @@ spring:
 jwt:
   secret-key: ${JWT_SECRET_KEY}
 server:
-  port: 8888
+  port: ${PORT:8888}
 
 springdoc:
   api-docs:

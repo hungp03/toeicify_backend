@@ -2,6 +2,7 @@ package com.toeicify.toeic.controller;
 /**
  * Created by hungpham on 8/3/2025
  */
+import com.fasterxml.jackson.databind.JsonNode;
 import com.toeicify.toeic.dto.request.question.QuestionGroupRequest;
 import com.toeicify.toeic.dto.response.question.QuestionGroupResponse;
 import com.toeicify.toeic.dto.response.PaginationResponse;
@@ -53,12 +54,19 @@ public class QuestionController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/by-part/{partId}")
-    public ResponseEntity<List<QuestionGroupResponse>> getQuestionGroupsByPartId(
-            @PathVariable Long partId) {
-        List<QuestionGroupResponse> response = questionService.getQuestionGroupsByPartId(partId);
-        return ResponseEntity.ok(response);
+    @GetMapping("/by-parts")
+    public ResponseEntity<JsonNode> getQuestionsByPartIds(@RequestParam List<Long> partIds) {
+        JsonNode result = questionService.getQuestionsByPartIds(partIds);
+        return ResponseEntity.ok(result);
     }
+
+
+    @GetMapping("/by-exam/{id}")
+    public ResponseEntity<JsonNode> getQuestionsByExamId(@PathVariable Long id) {
+        JsonNode result = questionService.getExamQuestionsByExam(id);
+        return ResponseEntity.ok(result);
+    }
+
 
     @GetMapping("/search")
     public ResponseEntity<PaginationResponse> searchQuestionGroups(

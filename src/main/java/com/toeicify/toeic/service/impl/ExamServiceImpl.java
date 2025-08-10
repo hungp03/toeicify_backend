@@ -19,6 +19,7 @@ import com.toeicify.toeic.service.ExamService;
 import com.toeicify.toeic.service.UserService;
 import com.toeicify.toeic.util.SecurityUtil;
 import com.toeicify.toeic.util.enums.ExamStatus;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -80,6 +81,7 @@ public class ExamServiceImpl implements ExamService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "toeicExam",  key = "#id")
     public ExamResponse getExamById(Long id) {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Exam not found"));

@@ -12,6 +12,7 @@ import com.toeicify.toeic.repository.ExamCategoryRepository;
 import com.toeicify.toeic.repository.ExamRepository;
 import com.toeicify.toeic.service.ExamCategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -63,6 +64,12 @@ public class ExamCategoryServiceImpl implements ExamCategoryService {
     }
 
     @Override
+    @Cacheable(
+            value = "categories",
+            key = "'p=' + #page + '&s=' + #pageSize",
+            condition = "#page >= 0 && #pageSize > 0",
+            unless = "#result == null"
+    )
     public PaginationResponse getAllExamCategories(int page, int pageSize) {
         Pageable pageable = PageRequest.of(page, pageSize);
         Page<ExamCategoryWithCount> pageResult = examCategoryRepository.findAllCategoriesWithExamCount(pageable);

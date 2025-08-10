@@ -17,6 +17,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+
 /**
  * Created by hungpham on 7/7/2025
  */
@@ -69,9 +70,15 @@ public class RedisConfig {
                 .disableCachingNullValues();
 
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
-
-        cacheConfigurations.put("test", RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(30)));
+        cacheConfigurations.put("categories", config.entryTtl(Duration.ofDays(1)));
+        // Cache thông tin của đề thi TOEIC - TTL 1 ngày
+        cacheConfigurations.put("toeicExam", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofDays(1))
+                .disableCachingNullValues());
+        // Cache phần thi
+        cacheConfigurations.put("toeicPart", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofDays(1))
+                .disableCachingNullValues());
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
