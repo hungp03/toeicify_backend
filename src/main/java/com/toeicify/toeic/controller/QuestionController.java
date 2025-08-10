@@ -4,6 +4,7 @@ package com.toeicify.toeic.controller;
  */
 import com.fasterxml.jackson.databind.JsonNode;
 import com.toeicify.toeic.dto.request.question.QuestionGroupRequest;
+import com.toeicify.toeic.dto.response.question.QuestionExplainResponse;
 import com.toeicify.toeic.dto.response.question.QuestionGroupResponse;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.service.QuestionService;
@@ -72,5 +73,10 @@ public class QuestionController {
             @RequestParam(defaultValue = "10") int size) {
         PaginationResponse response = questionService.searchQuestionGroups(partId, page, size);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/explain/{id}")
+    public ResponseEntity<QuestionExplainResponse> getQuestionExplain(@PathVariable Long id) {
+        return ResponseEntity.ok(questionService.getExplain(id));
     }
 }

@@ -3,6 +3,7 @@ package com.toeicify.toeic.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.toeicify.toeic.dto.request.question.QuestionGroupRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
+import com.toeicify.toeic.dto.response.question.QuestionExplainResponse;
 import com.toeicify.toeic.dto.response.question.QuestionGroupResponse;
 
 import java.util.List;
@@ -20,4 +21,6 @@ public interface QuestionService {
     JsonNode getExamQuestionsByExam(Long examId);
 
     PaginationResponse searchQuestionGroups(Long partId, int page, int size);
+
+    QuestionExplainResponse getExplain(Long questionId);
 }

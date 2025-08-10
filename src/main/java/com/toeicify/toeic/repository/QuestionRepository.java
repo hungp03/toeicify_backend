@@ -2,6 +2,7 @@ package com.toeicify.toeic.repository;
 
 import com.toeicify.toeic.entity.Question;
 import com.toeicify.toeic.projection.QuestionJsonProjection;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,4 +36,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     @Query(value = "SELECT fn_get_exam_questions_by_exam(:examId)", nativeQuery = true)
     QuestionJsonProjection getExamQuestionsByExam(@Param("examId") Long examId);
+
+    @EntityGraph(attributePaths = {"group", "options"})
+    Optional<Question> findByQuestionId(Long id);
 }

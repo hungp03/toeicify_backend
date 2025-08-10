@@ -54,4 +54,13 @@ public interface UserAttemptRepository extends JpaRepository<UserAttempt, Long> 
 
     @Query("SELECT ep.partId, ep.partNumber FROM ExamPart ep WHERE ep.partId IN :partIds")
     List<Object[]> getPartDetailsByIds(@Param("partIds") List<Long> partIds);
+
+    @Query("""
+           select (count(ua) > 0)
+           from UserAttempt ua
+           where ua.attemptId = :attemptId
+             and ua.user.userId = :userId
+           """)
+    boolean existsOwnedBy(@Param("attemptId") Long attemptId,
+                          @Param("userId") Long userId);
 }
