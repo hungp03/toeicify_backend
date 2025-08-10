@@ -5,6 +5,8 @@ import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.exam.ExamResponse;
 import com.toeicify.toeic.entity.Exam;
 import com.toeicify.toeic.service.ExamService;
+import com.toeicify.toeic.util.annotation.ApiMessage;
+import com.toeicify.toeic.util.enums.ExamStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -53,4 +55,14 @@ public class ExamController {
         examService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/status")
+    @ApiMessage("Update exam status")
+    public ResponseEntity<ExamResponse> updateExamStatus(
+            @PathVariable Long id,
+            @RequestParam ExamStatus status
+    ) {
+        return ResponseEntity.ok(examService.updateStatus(id, status));
+    }
+
 }

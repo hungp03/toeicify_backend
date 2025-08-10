@@ -3,6 +3,7 @@ package com.toeicify.toeic.service;
 import com.toeicify.toeic.dto.request.question.QuestionGroupRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.question.QuestionGroupResponse;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 

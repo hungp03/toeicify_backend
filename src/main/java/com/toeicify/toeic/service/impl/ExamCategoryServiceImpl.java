@@ -17,6 +17,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * Created by hungpham on 7/10/2025
  */
@@ -81,5 +84,13 @@ public class ExamCategoryServiceImpl implements ExamCategoryService {
     @Override
     public ExamCategory findExamCategoryById(Long id) {
         return examCategoryRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Exam category not found"));
+    }
+
+    @Override
+    public List<ExamCategoryResponse> getAllExamCategoriesList() {
+        List<ExamCategory> categoryList = examCategoryRepository.findAll();
+        return categoryList.stream()
+                .map(examCategoryMapper::toResponse)
+                .collect(Collectors.toList());
     }
 }

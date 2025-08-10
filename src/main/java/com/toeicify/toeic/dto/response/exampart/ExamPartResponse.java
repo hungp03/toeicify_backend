@@ -8,5 +8,6 @@ public record ExamPartResponse(
         Integer partNumber,
         String partName,
         String description,
-        Integer questionCount
+        Integer questionCount,
+        Integer expectedQuestionCount
 ) {}

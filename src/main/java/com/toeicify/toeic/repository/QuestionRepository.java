@@ -1,6 +1,7 @@
 package com.toeicify.toeic.repository;
 
 import com.toeicify.toeic.entity.Question;
+import com.toeicify.toeic.entity.QuestionGroup;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,4 +29,10 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findByGroupGroupIdOrderByQuestionId(Long groupId);
 
     long countByGroupGroupId(Long groupId);
+
+    // Đếm tổng số câu hỏi thuộc 1 part
+    long countByGroupPartPartId(Long partId);
+
+    // biết có tồn tại câu hỏi nào không (nhanh hơn COUNT)
+    boolean existsByGroupPartPartId(Long partId);
 }

@@ -24,6 +24,8 @@ public interface ExamMapper {
     ExamResponse toExamResponse(Exam exam);
 
     @Mapping(source = "part.partId", target = "partId")
+    @Mapping(target = "expectedQuestionCount",
+            expression = "java(com.toeicify.toeic.util.enums.ToeicPartSpec.expectedFor(part.getPartNumber()))")
     ExamPartResponse toExamPartResponse(ExamPart part);
 
     List<ExamPartResponse> toExamPartResponseList(List<ExamPart> parts);

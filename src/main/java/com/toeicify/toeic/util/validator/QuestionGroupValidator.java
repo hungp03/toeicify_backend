@@ -144,21 +144,36 @@ public class QuestionGroupValidator {
         }
     }
 
+//    private int getExpectedOptionCount(QuestionType questionType) {
+//        return switch (questionType) {
+//            case LISTENING_QUESTION_RESPONSE, LISTENING_CONVERSATION, LISTENING_TALK -> 3; // Part 2, 3, 4
+//            case LISTENING_PHOTO, READING_INCOMPLETE_SENTENCES, READING_TEXT_COMPLETION,
+//                 READING_SINGLE_PASSAGE, READING_DOUBLE_PASSAGE, READING_TRIPLE_PASSAGE -> 4; // Part 1, 5, 6, 7
+//        };
+//    }
+
+//    private Set<String> getExpectedOptionLetters(QuestionType questionType) {
+//        return switch (questionType) {
+//            case LISTENING_QUESTION_RESPONSE, LISTENING_CONVERSATION, LISTENING_TALK ->
+//                    Set.of("A", "B", "C"); // Part 2, 3, 4
+//            case LISTENING_PHOTO, READING_INCOMPLETE_SENTENCES, READING_TEXT_COMPLETION,
+//                 READING_SINGLE_PASSAGE, READING_DOUBLE_PASSAGE, READING_TRIPLE_PASSAGE ->
+//                    Set.of("A", "B", "C", "D"); // Part 1, 5, 6, 7
+//        };
+//    }
+    // Trong đề thi TOEIC chỉ có part 2 có 3 đáp án A-C
     private int getExpectedOptionCount(QuestionType questionType) {
         return switch (questionType) {
-            case LISTENING_QUESTION_RESPONSE, LISTENING_CONVERSATION, LISTENING_TALK -> 3; // Part 2, 3, 4
-            case LISTENING_PHOTO, READING_INCOMPLETE_SENTENCES, READING_TEXT_COMPLETION,
-                 READING_SINGLE_PASSAGE, READING_DOUBLE_PASSAGE, READING_TRIPLE_PASSAGE -> 4; // Part 1, 5, 6, 7
+            case LISTENING_QUESTION_RESPONSE -> 3; // Part 2
+            default -> 4; // Part 1, 2, 3, 4, 5, 6, 7
         };
     }
 
     private Set<String> getExpectedOptionLetters(QuestionType questionType) {
         return switch (questionType) {
-            case LISTENING_QUESTION_RESPONSE, LISTENING_CONVERSATION, LISTENING_TALK ->
-                    Set.of("A", "B", "C"); // Part 2, 3, 4
-            case LISTENING_PHOTO, READING_INCOMPLETE_SENTENCES, READING_TEXT_COMPLETION,
-                 READING_SINGLE_PASSAGE, READING_DOUBLE_PASSAGE, READING_TRIPLE_PASSAGE ->
-                    Set.of("A", "B", "C", "D"); // Part 1, 5, 6, 7
+            case LISTENING_QUESTION_RESPONSE ->
+                    Set.of("A", "B", "C"); // Part 2
+            default ->  Set.of("A", "B", "C", "D"); // Part 1, 3, 4, 5, 6, 7
         };
     }
 

@@ -3,6 +3,7 @@ package com.toeicify.toeic.controller;
 import com.toeicify.toeic.dto.request.examcategory.ExamCategoryRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.examcategory.ExamCategoryResponse;
+import com.toeicify.toeic.entity.ExamCategory;
 import com.toeicify.toeic.service.ExamCategoryService;
 import com.toeicify.toeic.util.annotation.ApiMessage;
 import jakarta.validation.Valid;
@@ -11,6 +12,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by hungpham on 7/10/2025
@@ -56,5 +60,12 @@ public class ExamCategoryController {
     public ResponseEntity<Void> deleteExamCategory(@PathVariable Long categoryId) {
             examCategoryService.deleteExamCategory(categoryId);
           return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/all")
+    @ApiMessage("Get all exam categories without pagination")
+    public ResponseEntity<List<ExamCategoryResponse>> getAllExamCategoriesList() {
+        List<ExamCategoryResponse> categories = examCategoryService.getAllExamCategoriesList();
+        return ResponseEntity.ok(categories);
     }
 }

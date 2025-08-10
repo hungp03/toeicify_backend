@@ -11,7 +11,7 @@ import java.util.List;
 public record ExamRequest(
         @NotBlank String examName,
         @NotBlank String examDescription,
-        @NotNull @Min(1) Integer totalQuestions,
+        @NotNull @Min(0) Integer totalQuestions,
         @NotBlank String listeningAudioUrl,
         @NotNull Long categoryId,
         @NotEmpty List<@Valid ExamPartRequest> examParts
