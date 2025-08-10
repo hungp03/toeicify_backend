@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toeicify.toeic.dto.request.exam.SubmitExamRequest;
 import com.toeicify.toeic.dto.response.exam.*;
 import com.toeicify.toeic.repository.UserAttemptRepository;
+import com.toeicify.toeic.service.UserAttemptService;
 import com.toeicify.toeic.util.SecurityUtil;
 import com.toeicify.toeic.util.validator.ExamValidator;
 import lombok.RequiredArgsConstructor;
@@ -26,13 +27,13 @@ import java.util.List;
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
-public class UserAttemptServiceImpl {
+public class UserAttemptServiceImpl implements UserAttemptService {
     private final UserAttemptRepository userAttemptRepository;
     private final ObjectMapper objectMapper;
     private final ExamValidator examValidator;
 
-    public ExamSubmissionResponse submitExam(SubmitExamRequest request) {
-        try {
+    @Override
+    public ExamSubmissionResponse submitExam(SubmitExamRequest request) throws JsonProcessingException {
             Long userId = SecurityUtil.getCurrentUserId();
             log.info("Processing exam submission for user: {}, exam: {}", userId, request.examId());
 
@@ -43,14 +44,20 @@ public class UserAttemptServiceImpl {
             String answersJson = objectMapper.writeValueAsString(request.answers());
             Boolean isFullTest = "full".equals(request.submitType());
 
-            // Call PostgreSQL function - returns table
+            Long[] partIdsArray = null;
+            if ("partial".equals(request.submitType()) && request.partIds() != null) {
+                partIdsArray = request.partIds().toArray(new Long[0]);
+            }
+
+            // Call function
             List<Object[]> results = userAttemptRepository.submitExamAndCalculateScore(
                     userId,
                     request.examId(),
                     answersJson,
                     request.startTime(),
                     request.endTime(),
-                    isFullTest
+                    isFullTest,
+                    partIdsArray
             );
 
             // Map result từ Object[]
@@ -96,14 +103,6 @@ public class UserAttemptServiceImpl {
                     .partsDetail(partsDetail)
                     .examSummary(buildExamSummary(request))
                     .build();
-
-        } catch (JsonProcessingException e) {
-            log.error("Error processing JSON for exam submission", e);
-            throw new RuntimeException("Failed to process exam submission", e);
-        } catch (Exception e) {
-            log.error("Error submitting exam", e);
-            throw new RuntimeException("Failed to submit exam", e);
-        }
     }
 
     private List<PartDetailResponse> getPartsDetailByAttempt(Long attemptId) {
@@ -123,6 +122,7 @@ public class UserAttemptServiceImpl {
         return partsDetail;
     }
 
+    @Override
     public ExamResultDetailResponse getExamResult(Long attemptId) {
         try {
             Long userId = SecurityUtil.getCurrentUserId();

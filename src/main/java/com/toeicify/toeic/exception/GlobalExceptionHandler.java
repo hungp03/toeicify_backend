@@ -26,22 +26,22 @@ public class GlobalExceptionHandler {
         return buildResponse(ErrorCode.BAD_CREDENTIALS, "Authentication exception", ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler({UnauthorizedException.class})
+    @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Object>> handleUsernameNotFoundException(RuntimeException ex) {
         return buildResponse(ErrorCode.UNAUTHORIZED, "Unauthorized exception", ex.getMessage(), HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler({ResourceInvalidException.class})
+    @ExceptionHandler(ResourceInvalidException.class)
     public ResponseEntity<ApiResponse<Object>> handleResourceInvalidException(RuntimeException ex) {
         return buildResponse(ErrorCode.RESOURCE_INVALID, "Resource Invalid Exception", ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler({ResourceNotFoundException.class})
+    @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(RuntimeException ex) {
         return buildResponse(ErrorCode.RESOURCE_NOT_FOUND, "Resource Not Found", ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler({ResourceAlreadyExistsException.class})
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
     public ResponseEntity<ApiResponse<Object>> handleResourceAlreadyExistsException(RuntimeException ex) {
         return buildResponse(ErrorCode.RESOURCE_ALREADY_EXISTS, "Resource already exists", ex.getMessage(), HttpStatus.CONFLICT);
     }
@@ -67,7 +67,7 @@ public class GlobalExceptionHandler {
         return buildResponse(ErrorCode.CANNOT_DELETE, "Cannot delete resource", ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler({Exception.class})
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleException(RuntimeException ex) {
         return buildResponse(ErrorCode.EXCEPTION, "Server Error", ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }

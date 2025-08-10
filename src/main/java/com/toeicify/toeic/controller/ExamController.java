@@ -1,5 +1,6 @@
 package com.toeicify.toeic.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.toeicify.toeic.dto.request.exam.ExamRequest;
 import com.toeicify.toeic.dto.request.exam.SubmitExamRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
@@ -10,6 +11,7 @@ import com.toeicify.toeic.service.ExamService;
 import com.toeicify.toeic.util.annotation.ApiMessage;
 import com.toeicify.toeic.util.enums.ExamStatus;
 import com.toeicify.toeic.service.impl.UserAttemptServiceImpl;
+import com.toeicify.toeic.service.UserAttemptService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("api/exams")
 public class ExamController {
     private final ExamService examService;
-    private final UserAttemptServiceImpl userAttemptService;
+    private final UserAttemptService userAttemptService;
 
     @PostMapping
     public ResponseEntity<ExamResponse> createExam(@Valid @RequestBody ExamRequest exam) {
@@ -74,7 +76,7 @@ public class ExamController {
 
     @PostMapping("submit")
     public ResponseEntity<ExamSubmissionResponse> submitExam(
-            @RequestBody @Valid SubmitExamRequest request) {
+            @RequestBody @Valid SubmitExamRequest request) throws JsonProcessingException {
         ExamSubmissionResponse response = userAttemptService.submitExam(request);
         return ResponseEntity.ok(response);
     }
