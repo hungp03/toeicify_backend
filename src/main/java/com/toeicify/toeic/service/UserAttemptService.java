@@ -14,6 +14,4 @@ public interface UserAttemptService {
     ExamSubmissionResponse submitExam(SubmitExamRequest request) throws JsonProcessingException;
 
     ExamResultDetailResponse getExamResult(Long attemptId);
-
-    UserProgressResponse getUserProgress(int chartLimit) throws JsonProcessingException;
 }

@@ -68,4 +68,6 @@ public interface UserAttemptRepository extends JpaRepository<UserAttempt, Long> 
 
     @Query(value = "SELECT get_user_progress(:userId, :limit)", nativeQuery = true)
     String getUserProgress(@Param("userId") Long userId, @Param("limit") Integer limit);
+
+    List<UserAttempt> findTop1ByOrderByEndTimeDesc();
 }
