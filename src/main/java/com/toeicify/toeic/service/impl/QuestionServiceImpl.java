@@ -7,9 +7,15 @@ import com.toeicify.toeic.dto.request.question.QuestionGroupRequest;
 import com.toeicify.toeic.dto.request.question.QuestionOptionRequest;
 import com.toeicify.toeic.dto.request.question.QuestionRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
+import com.toeicify.toeic.dto.response.question.QuestionExplainResponse;
 import com.toeicify.toeic.dto.response.question.QuestionGroupListItemResponse;
 import com.toeicify.toeic.dto.response.question.QuestionGroupResponse;
 import com.toeicify.toeic.entity.*;
+import com.toeicify.toeic.dto.response.question.QuestionOptionResponse;
+import com.toeicify.toeic.entity.ExamPart;
+import com.toeicify.toeic.entity.Question;
+import com.toeicify.toeic.entity.QuestionGroup;
+import com.toeicify.toeic.entity.QuestionOption;
 import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
 import com.toeicify.toeic.mapper.QuestionMapper;
@@ -377,5 +383,35 @@ public class QuestionServiceImpl implements QuestionService {
     private void recalcExamTotalQuestions(Exam exam) {
         int total = examPartRepository.sumQuestionCountByExamId(exam.getExamId());
         exam.setTotalQuestions(total);
+    }
+
+    @Override
+    @Cacheable(value = "question", key = "#questionId")
+    public QuestionExplainResponse getExplain(Long questionId) {
+        Question q = questionRepository.findByQuestionId(questionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found: " + questionId));
+
+        String audioUrl = (q.getGroup() != null) ? q.getGroup().getAudioUrl() : null;
+        String imageUrl = (q.getGroup() != null) ? q.getGroup().getImageUrl() : null;
+
+        List<QuestionOptionResponse> options = q.getOptions().stream()
+                .sorted(Comparator.comparing(QuestionOption::getOptionLetter))
+                .map(o -> new QuestionOptionResponse(
+                        o.getOptionId(),
+                        o.getOptionLetter(),
+                        o.getOptionText()
+                ))
+                .toList();
+
+        return new QuestionExplainResponse(
+                q.getQuestionNumber(),
+                q.getQuestionText(),
+                audioUrl,
+                imageUrl,
+                q.getQuestionType(),
+                q.getCorrectAnswerOption(),
+                q.getExplanation(),
+                options
+        );
     }
 }

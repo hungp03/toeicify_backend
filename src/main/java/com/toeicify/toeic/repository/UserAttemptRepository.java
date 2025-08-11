@@ -1,6 +1,7 @@
 package com.toeicify.toeic.repository;
 
 import com.toeicify.toeic.entity.UserAttempt;
+import com.toeicify.toeic.projection.PracticeScorePoint;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -54,6 +55,19 @@ public interface UserAttemptRepository extends JpaRepository<UserAttempt, Long> 
 
     @Query("SELECT ep.partId, ep.partNumber FROM ExamPart ep WHERE ep.partId IN :partIds")
     List<Object[]> getPartDetailsByIds(@Param("partIds") List<Long> partIds);
+
+    @Query("""
+           select (count(ua) > 0)
+           from UserAttempt ua
+           where ua.attemptId = :attemptId
+             and ua.user.userId = :userId
+           """)
+    boolean existsOwnedBy(@Param("attemptId") Long attemptId,
+                          @Param("userId") Long userId);
+
+
+    @Query(value = "SELECT get_user_progress(:userId, :limit)", nativeQuery = true)
+    String getUserProgress(@Param("userId") Long userId, @Param("limit") Integer limit);
 
     @Query(value = """
     SELECT
