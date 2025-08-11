@@ -1,9 +1,6 @@
 package com.toeicify.toeic.repository;
 
 import com.toeicify.toeic.entity.UserAttempt;
-import com.toeicify.toeic.projection.PracticeScorePoint;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -56,7 +53,6 @@ public interface UserAttemptRepository extends JpaRepository<UserAttempt, Long> 
     @Query("SELECT ep.partId, ep.partNumber FROM ExamPart ep WHERE ep.partId IN :partIds")
     List<Object[]> getPartDetailsByIds(@Param("partIds") List<Long> partIds);
 
-<<<<<<< HEAD
     @Query("""
            select (count(ua) > 0)
            from UserAttempt ua
@@ -66,48 +62,18 @@ public interface UserAttemptRepository extends JpaRepository<UserAttempt, Long> 
     boolean existsOwnedBy(@Param("attemptId") Long attemptId,
                           @Param("userId") Long userId);
 
-
     @Query(value = "SELECT get_user_progress(:userId, :limit)", nativeQuery = true)
     String getUserProgress(@Param("userId") Long userId, @Param("limit") Integer limit);
-
     List<UserAttempt> findTop1ByOrderByEndTimeDesc();
-    @Query(value = """
-    SELECT
-      ua.attempt_id,
-      ua.exam_id,
-      e.exam_name,
-      ua.start_time,
-      ua.end_time,
-      ua.is_full_test,
-      ua.score,
-      COALESCE(SUM(pa.score_part), 0) AS correct_count,
-      COALESCE(SUM(
-        CASE ep.part_number
-          WHEN 1 THEN 6
-          WHEN 2 THEN 25
-          WHEN 3 THEN 39
-          WHEN 4 THEN 30
-          WHEN 5 THEN 30
-          WHEN 6 THEN 16
-          WHEN 7 THEN 54
-          ELSE 0
-        END
-      ), 0) AS total_questions,
-      COALESCE(STRING_AGG(ep.part_number::text, ',' ORDER BY ep.part_number), '') AS parts_text
-    FROM user_attempts ua
-    JOIN exams e ON e.exam_id = ua.exam_id
-    LEFT JOIN part_attempts pa ON pa.attempt_id = ua.attempt_id
-    LEFT JOIN exam_parts ep ON ep.part_id = pa.part_id
-    WHERE ua.user_id = :userId
-    GROUP BY ua.attempt_id, ua.exam_id, e.exam_name, ua.start_time, ua.end_time, ua.is_full_test, ua.score
-    ORDER BY ua.end_time DESC NULLS LAST, ua.start_time DESC
-    """,
-            countQuery = """
-    SELECT COUNT(*)
-    FROM user_attempts ua
-    WHERE ua.user_id = :userId
-    """,
-            nativeQuery = true)
-    Page<Object[]> findAttemptHistory(@Param("userId") Long userId, Pageable pageable);
 
+    // Gọi bản đủ tham số (có offset) để phân trang các attempt của user
+    @Query(value = "SELECT find_attempt_history(:userId, :limit, :offset)", nativeQuery = true)
+    String findAttemptHistoryJson(@Param("userId") Long userId,
+                                  @Param("limit") int limit,
+                                  @Param("offset") int offset);
+
+    // (Tiện dụng) Gọi trang đầu (offset = 0)
+    @Query(value = "SELECT find_attempt_history(:userId, :limit)", nativeQuery = true)
+    String findAttemptHistoryFirstPage(@Param("userId") Long userId,
+                                       @Param("limit") int limit);
 }

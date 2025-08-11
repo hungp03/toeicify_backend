@@ -12,7 +12,6 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
-
 /**
  * Created by hungpham on 8/9/2025
  */
@@ -20,6 +19,8 @@ public interface UserAttemptService {
     ExamSubmissionResponse submitExam(SubmitExamRequest request) throws JsonProcessingException;
 
     ExamResultDetailResponse getExamResult(Long attemptId);
+
+    UserProgressResponse getUserProgress(int chartLimit) throws JsonProcessingException;
 
     public PaginationResponse getAttemptHistoryForCurrentUser(Pageable pageable);
 }

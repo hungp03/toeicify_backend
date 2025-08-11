@@ -8,6 +8,9 @@ import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.attempt.AttemptItemResponse;
 import com.toeicify.toeic.dto.response.attempt.ExamHistoryResponse;
 import com.toeicify.toeic.dto.response.exam.*;
+import com.toeicify.toeic.dto.response.stats.ChartPracticePointData;
+import com.toeicify.toeic.dto.response.stats.PracticePointResponse;
+import com.toeicify.toeic.dto.response.stats.UserProgressResponse;
 import com.toeicify.toeic.repository.UserAttemptRepository;
 import com.toeicify.toeic.service.UserAttemptService;
 import com.toeicify.toeic.util.SecurityUtil;
@@ -22,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -172,50 +176,82 @@ public class UserAttemptServiceImpl implements UserAttemptService {
         }
     }
 
+    @Override
     public PaginationResponse getAttemptHistoryForCurrentUser(Pageable pageable) {
         Long userId = SecurityUtil.getCurrentUserId();
+        int limit  = pageable.getPageSize();
+        int offset = pageable.getPageNumber() * limit;
 
-        Page<Object[]> raw = userAttemptRepository.findAttemptHistory(userId, pageable);
-
-        Page<AttemptHistoryRow> mapped = raw.map(r -> {
-            int i = 0;
-            Long attemptId  = ((Number) r[i++]).longValue();
-            Long examId     = ((Number) r[i++]).longValue();
-            String examName = (String) r[i++];
-
-            Instant start   = toInstant(r[i++]);
-            Instant end     = (r[i] == null) ? null : toInstant(r[i]); i++;
-
-            Boolean isFull  = (Boolean) r[i++];
-            Integer score   = (r[i] == null) ? null : ((Number) r[i]).intValue(); i++;
-            Integer correct = ((Number) r[i++]).intValue();
-            Integer totalQ  = ((Number) r[i++]).intValue();
-            String partsTxt = (String) r[i++];
-
-            List<Integer> parts = (partsTxt == null || partsTxt.isBlank())
-                    ? List.of()
-                    : Arrays.stream(partsTxt.split(",")).map(Integer::parseInt).toList();
-
-            long durationSec = (end != null ? Duration.between(start, end).getSeconds() : 0);
-
-            return new AttemptHistoryRow(
-                    examId, examName,
-                    AttemptItemResponse.builder()
-                            .attemptId(attemptId)
-                            .fullTest(isFull)
-                            .parts(parts)
-                            .correct(correct)
-                            .total(totalQ)
-                            .toeicScore(Boolean.TRUE.equals(isFull) ? score : null)
-                            .startTime(start)
-                            .endTime(end)
-                            .durationSeconds(durationSec)
-                            .build()
+        // 1) Gọi function JSON từ DB
+        //    - Trang bất kỳ: dùng bản 3 tham số (có offset)
+        //    - (Nếu muốn trang đầu rõ ràng) có thể dùng findAttemptHistoryFirstPage(userId, limit)
+        String payload = userAttemptRepository.findAttemptHistoryJson(userId, limit, offset);
+        if (payload == null || payload.isBlank()) {
+            // Trường hợp DB trả null (hiếm), trả về rỗng cho an toàn
+            return PaginationResponse.from(
+                    new org.springframework.data.domain.PageImpl<>(List.of(), pageable, 0),
+                    pageable
             );
-        });
+        }
 
-        // Truyền cả mapped Page và pageable vào from(...)
-        return PaginationResponse.from(mapped, pageable);
+        // 2) Parse JSON
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(payload);
+        } catch (Exception e) {
+            log.error("Cannot parse attempt history JSON payload: {}", payload, e);
+            throw new RuntimeException("Cannot parse attempt history JSON", e);
+        }
+
+        JsonNode metaNode   = root.path("meta");
+        JsonNode resultNode = root.path("result");
+
+        // 3) Map JSON -> List<AttemptHistoryRow> (attempt phẳng kèm examId/examName)
+        List<AttemptHistoryRow> content = new ArrayList<>();
+        if (resultNode.isArray()) {
+            for (JsonNode item : resultNode) {
+                long   examId   = item.path("examId").asLong();
+                String examName = item.path("examName").asText();
+
+                JsonNode a = item.path("attempt");
+                AttemptItemResponse attempt = AttemptItemResponse.builder()
+                        .attemptId(a.path("attemptId").asLong())
+                        .fullTest(a.path("fullTest").asBoolean())
+                        .parts(parseParts(a.path("parts")))
+                        .correct(a.path("correct").asInt())
+                        .total(a.path("total").asInt())
+                        .toeicScore(a.path("toeicScore").isNull() ? null : a.path("toeicScore").asInt())
+                        .startTime(parseInstant(a.path("startTime")))
+                        .endTime(parseInstantNullable(a.path("endTime")))
+                        .durationSeconds(a.path("durationSeconds").asLong())
+                        .build();
+
+                content.add(new AttemptHistoryRow(examId, examName, attempt));
+            }
+        }
+
+        // 4) Lấy total từ meta -> dựng PageImpl để tái dùng PaginationResponse.from(...)
+        long total = metaNode.path("total").asLong(0);
+        Page<AttemptHistoryRow> page = new org.springframework.data.domain.PageImpl<>(content, pageable, total);
+
+        return PaginationResponse.from(page, pageable);
+    }
+
+    private static List<Integer> parseParts(JsonNode partsNode) {
+        if (partsNode == null || partsNode.isNull() || !partsNode.isArray()) return List.of();
+        List<Integer> parts = new ArrayList<>();
+        for (JsonNode n : partsNode) parts.add(n.asInt());
+        return parts;
+    }
+
+    private static Instant parseInstant(JsonNode node) {
+        if (node == null || node.isNull()) return null;
+        // to_jsonb(timestamptz) -> ISO-8601 có offset; Instant.parse chấp nhận
+        return Instant.parse(node.asText());
+    }
+
+    private static Instant parseInstantNullable(JsonNode node) {
+        return parseInstant(node);
     }
 
 
@@ -239,7 +275,8 @@ public class UserAttemptServiceImpl implements UserAttemptService {
 
 
     // Private helper methods
-    private List<PartDetailResponse> parsePartsDetail(JsonNode partsNode) throws JsonProcessingException {
+    private List<PartDetailResponse> parsePartsDetail(JsonNode partsNode) {
+
         if (partsNode == null || !partsNode.isArray()) return Collections.emptyList();
 
         List<PartDetailResponse> parts = new ArrayList<>();
@@ -296,4 +333,30 @@ public class UserAttemptServiceImpl implements UserAttemptService {
         for (JsonNode n : partsNode) parts.add(n.asLong());
         return parts;
     }
+
+    @Override
+    public UserProgressResponse getUserProgress(int chartLimit) throws JsonProcessingException {
+        Long userId = SecurityUtil.getCurrentUserId();
+        String json = userAttemptRepository.getUserProgress(userId, chartLimit);
+        JsonNode root = objectMapper.readTree(json);
+
+        UserProgressResponse.Summary summary = new UserProgressResponse.Summary(
+                root.path("summary").path("currentScore").asInt(0),
+                root.path("summary").path("testsTaken").asInt(0),
+                new BigDecimal(root.path("summary").path("studyHours").asText("0"))
+        );
+
+        UserProgressResponse.SectionHighs highs = new UserProgressResponse.SectionHighs(
+                root.path("sectionHighs").path("listeningMax").asInt(0),
+                root.path("sectionHighs").path("readingMax").asInt(0)
+        );
+
+        List<UserProgressResponse.TrendPoint> trend = new ArrayList<>();
+        for (JsonNode n : root.path("scoreTrend")) {
+            trend.add(new UserProgressResponse.TrendPoint(n.path("day").asText(), n.path("score").asInt()));
+        }
+
+        return new UserProgressResponse(summary, highs, trend);
+    }
+
 }
