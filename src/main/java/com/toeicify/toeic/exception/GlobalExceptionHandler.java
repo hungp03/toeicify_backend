@@ -27,8 +27,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUsernameNotFoundException(RuntimeException ex) {
+    public ResponseEntity<ApiResponse<Object>> handleUnauthorizedException(RuntimeException ex) {
         return buildResponse(ErrorCode.UNAUTHORIZED, "Unauthorized exception", ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(RuntimeException ex) {
+            return buildResponse(ErrorCode.FORBIDDEN, "Access denied exception", ex.getMessage(), HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(ResourceInvalidException.class)
@@ -53,7 +58,7 @@ public class GlobalExceptionHandler {
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .collect(Collectors.toList());
         return buildResponse(ErrorCode.METHOD_NOT_VALID, "Validation Error",
-                errors.size() > 1 ? errors : errors.get(0), HttpStatus.BAD_REQUEST);
+                errors.size() > 1 ? errors : errors.getFirst(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

@@ -11,6 +11,7 @@ import com.toeicify.toeic.dto.response.auth.OtpVerificationResponse;
 import com.toeicify.toeic.dto.response.user.UserInfoResponse;
 import com.toeicify.toeic.dto.response.user.UserLoginResponse;
 import com.toeicify.toeic.entity.User;
+import com.toeicify.toeic.exception.AccessDeniedException;
 import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
 import com.toeicify.toeic.exception.ResourceInvalidException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
@@ -52,6 +53,7 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse login(AuthRequest request) {
         final String identifier = request.identifier();
         User currentUser = userService.findByUsernameOrEmail(identifier);
+        checkAccountActive(currentUser);
         checkPasswordExists(currentUser);
         Authentication authentication = authenticate(request.identifier(), request.password());
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -59,6 +61,12 @@ public class AuthServiceImpl implements AuthService {
         String refreshToken = jwtService.generateRefreshToken(userDetails);
         UserLoginResponse userLoginResponse = UserLoginResponse.from(currentUser, accessToken);
         return AuthResponse.of(userLoginResponse, refreshToken);
+    }
+
+    private void checkAccountActive(User currentUser) {
+        if (!currentUser.getIsActive()) {
+            throw new AccessDeniedException("User is locked");
+        }
     }
 
     @Override

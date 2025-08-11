@@ -84,6 +84,10 @@ public class RedisConfig {
                 .entryTtl(Duration.ofDays(1))
                 .disableCachingNullValues());
 
+        cacheConfigurations.put("userStatus", RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofHours(1))
+                .disableCachingNullValues());
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
                 .withInitialCacheConfigurations(cacheConfigurations)

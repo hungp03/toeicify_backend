@@ -20,4 +20,5 @@ public interface UserService {
     boolean existsById(Long userId);
     PaginationResponse getUsers(String searchTerm,int page, int pageSize);
     void toggleUserStatus(Long userId, String lockReason);
+    boolean isUserActive(Long userId);
 }
