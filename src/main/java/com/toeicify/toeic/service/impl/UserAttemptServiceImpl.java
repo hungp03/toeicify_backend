@@ -5,9 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toeicify.toeic.dto.request.exam.SubmitExamRequest;
 import com.toeicify.toeic.dto.response.exam.*;
-import com.toeicify.toeic.dto.response.stats.ChartPracticePointData;
-import com.toeicify.toeic.dto.response.stats.PracticePointResponse;
-import com.toeicify.toeic.dto.response.stats.UserProgressResponse;
 import com.toeicify.toeic.repository.UserAttemptRepository;
 import com.toeicify.toeic.service.UserAttemptService;
 import com.toeicify.toeic.util.SecurityUtil;
@@ -17,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -225,30 +221,4 @@ public class UserAttemptServiceImpl implements UserAttemptService {
         for (JsonNode n : partsNode) parts.add(n.asLong());
         return parts;
     }
-
-    @Override
-    public UserProgressResponse getUserProgress(int chartLimit) throws JsonProcessingException {
-        Long userId = SecurityUtil.getCurrentUserId();
-        String json = userAttemptRepository.getUserProgress(userId, chartLimit);
-        JsonNode root = objectMapper.readTree(json);
-
-        UserProgressResponse.Summary summary = new UserProgressResponse.Summary(
-                root.path("summary").path("currentScore").asInt(0),
-                root.path("summary").path("testsTaken").asInt(0),
-                new BigDecimal(root.path("summary").path("studyHours").asText("0"))
-        );
-
-        UserProgressResponse.SectionHighs highs = new UserProgressResponse.SectionHighs(
-                root.path("sectionHighs").path("listeningMax").asInt(0),
-                root.path("sectionHighs").path("readingMax").asInt(0)
-        );
-
-        List<UserProgressResponse.TrendPoint> trend = new ArrayList<>();
-        for (JsonNode n : root.path("scoreTrend")) {
-            trend.add(new UserProgressResponse.TrendPoint(n.path("day").asText(), n.path("score").asInt()));
-        }
-
-        return new UserProgressResponse(summary, highs, trend);
-    }
-
 }
