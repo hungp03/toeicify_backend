@@ -2,8 +2,13 @@ package com.toeicify.toeic.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.toeicify.toeic.dto.request.exam.SubmitExamRequest;
+import com.toeicify.toeic.dto.response.PaginationResponse;
+import com.toeicify.toeic.dto.response.attempt.ExamHistoryResponse;
 import com.toeicify.toeic.dto.response.exam.ExamResultDetailResponse;
 import com.toeicify.toeic.dto.response.exam.ExamSubmissionResponse;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 /**
  * Created by hungpham on 8/9/2025
@@ -12,4 +17,6 @@ public interface UserAttemptService {
     ExamSubmissionResponse submitExam(SubmitExamRequest request) throws JsonProcessingException;
 
     ExamResultDetailResponse getExamResult(Long attemptId);
+
+    public PaginationResponse getAttemptHistoryForCurrentUser(Pageable pageable);
 }
