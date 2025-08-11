@@ -12,4 +12,5 @@ public interface ErrorCode {
     int RESOURCE_ALREADY_EXISTS = 6;
     int METHOD_NOT_VALID = 7;
     int CANNOT_DELETE = 8;
+    int FORBIDDEN = 9;
 }

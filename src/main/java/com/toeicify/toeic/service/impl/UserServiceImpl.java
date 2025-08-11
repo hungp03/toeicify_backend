@@ -5,7 +5,6 @@ import com.toeicify.toeic.dto.request.user.UpdatePasswordRequest;
 import com.toeicify.toeic.dto.request.user.UpdateUserRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.user.UserUpdateResponse;
-import com.toeicify.toeic.dto.response.user.AdminUserResponse;
 import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.exception.ResourceAlreadyExistsException;
 import com.toeicify.toeic.exception.ResourceInvalidException;
@@ -17,11 +16,12 @@ import com.toeicify.toeic.service.UserService;
 import com.toeicify.toeic.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -145,11 +145,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "userStatus", key = "#userId")
     public void toggleUserStatus(Long userId, String lockReason) {
         User user = findById(userId);
         boolean isActive = !user.getIsActive();
         user.setIsActive(isActive);
         user.setLockReason(!isActive && lockReason != null && !lockReason.trim().isEmpty() ? lockReason : null);
         userRepository.save(user);
+    }
+
+    @Override
+    @Cacheable(value = "userStatus", key = "#userId")
+    public boolean isUserActive(Long userId){
+        return userRepository.isUserActive(userId);
     }
 }

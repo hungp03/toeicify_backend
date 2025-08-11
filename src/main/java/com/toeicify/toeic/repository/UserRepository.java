@@ -53,4 +53,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByRegistrationDateBetween(@Param("start") Instant start, @Param("end") Instant end);
 
     List<User> findTop1ByOrderByRegistrationDateDesc();
+
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END " +
+            "FROM User u WHERE u.userId = :userId AND u.isActive = true")
+    boolean isUserActive(@Param("userId") Long userId);
 }
