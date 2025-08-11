@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.toeicify.toeic.dto.request.exam.ExamRequest;
 import com.toeicify.toeic.dto.request.exam.SubmitExamRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
+import com.toeicify.toeic.dto.response.attempt.ExamHistoryResponse;
 import com.toeicify.toeic.dto.response.exam.ExamResponse;
 import com.toeicify.toeic.dto.response.exam.ExamResultDetailResponse;
 import com.toeicify.toeic.dto.response.exam.ExamSubmissionResponse;
@@ -18,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * Created by hungpham on 7/10/2025
@@ -91,5 +94,4 @@ public class ExamController {
         ExamResultDetailResponse result = userAttemptService.getExamResult(attemptId);
         return ResponseEntity.ok(result);
     }
-
 }
