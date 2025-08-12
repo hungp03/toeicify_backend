@@ -67,7 +67,6 @@ public class StatsServiceImpl implements StatsService {
         return new UserProgressResponse(summary, highs, trend);
     }
 
-
     @Override
     public AdminDashboardResponse getDashboardData() {
 
@@ -93,10 +92,10 @@ public class StatsServiceImpl implements StatsService {
             growth = usersLastMonth > 0 ? "+" + ((usersThisMonth / usersLastMonth)) + "%" : "+0%";
         }
         List<AdminDashboardResponse.StatItem> stats = List.of(
-                AdminDashboardResponse.StatItem.builder().title("Tổng người dùng").value(String.valueOf(totalUsers)).change("").color("text-blue-600").build(),
-                AdminDashboardResponse.StatItem.builder().title("Số đề thi").value(String.valueOf(totalExams)).change("").color("text-green-600").build(),
-                AdminDashboardResponse.StatItem.builder().title("Số câu hỏi").value(String.valueOf(totalQuestions)).change("").color("text-purple-600").build(),
-                AdminDashboardResponse.StatItem.builder().title("Tăng trưởng").value(growth.replace("+", "")).change("").color("text-orange-600").build()
+                AdminDashboardResponse.StatItem.builder().title("Tổng người dùng").value(String.valueOf(totalUsers)).build(),
+                AdminDashboardResponse.StatItem.builder().title("Số đề thi").value(String.valueOf(totalExams)).build(),
+                AdminDashboardResponse.StatItem.builder().title("Số câu hỏi").value(String.valueOf(totalQuestions)).build(),
+                AdminDashboardResponse.StatItem.builder().title("Tăng trưởng").value(growth.replace("+", "")).build()
         );
 
         List<AdminDashboardResponse.MonthlyDataItem> monthlyData = new ArrayList<>();
@@ -138,7 +137,7 @@ public class StatsServiceImpl implements StatsService {
 
         activities.addAll(recentUserAttempt.stream()
                 .map(a -> AdminDashboardResponse.ActivityItem.builder()
-                        .action("Người dùng hoàn thành bài thi")
+                        .action("Người dùng hoàn thành bài thi mới nhất")
                         .user(a.getUser().getUsername())
                         .time(durationToString(a.getEndTime()))
                         .build())

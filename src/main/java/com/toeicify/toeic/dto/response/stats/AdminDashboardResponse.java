@@ -21,8 +21,6 @@ public class AdminDashboardResponse {
     public static class StatItem {
         private String title;
         private String value;
-        private String change;
-        private String color;
     }
 
     @Data
