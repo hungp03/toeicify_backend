@@ -142,27 +142,21 @@ public class QuestionServiceImpl implements QuestionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Exam part not found"));
 
         partStructureValidator.validatePartStructure(request, examPart.getPartNumber());
-
         // Update group fields
         questionGroup.setPart(examPart);
         questionGroup.setPassageText(request.passageText());
         questionGroup.setImageUrl(request.imageUrl());
         questionGroup.setAudioUrl(request.audioUrl());
-
         // Upsert questions + options trên collection managed
         int beforeCount = questionGroup.getQuestions() != null ? questionGroup.getQuestions().size() : 0;
         updateQuestionsForGroup(questionGroup, request.questions());
         int afterCount  = questionGroup.getQuestions() != null ? questionGroup.getQuestions().size() : 0;
-
         QuestionGroup savedGroup = questionGroupRepository.save(questionGroup);
-
         // CẬP NHẬT questionCount của Part (chênh lệch)
         int partCurrent = examPart.getQuestionCount() != null ? examPart.getQuestionCount() : 0;
         examPart.setQuestionCount(partCurrent + (afterCount - beforeCount));
-
         // CẬP NHẬT totalQuestions của Exam
         recalcExamTotalQuestions(examPart.getExam());
-
         return questionMapper.toQuestionGroupResponse(savedGroup);
     }
 
@@ -307,18 +301,22 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     private void updateQuestionsForGroup(QuestionGroup group, List<QuestionRequest> questionRequests) {
-        if (group.getQuestions() == null) group.setQuestions(new ArrayList<>());
+        if (group.getQuestions() == null) {
+            group.setQuestions(new ArrayList<>());
+        }
 
+        // Map of existing questions in the group
         Map<Long, Question> existingQuestions = group.getQuestions().stream()
                 .filter(q -> q.getQuestionId() != null)
                 .collect(Collectors.toMap(Question::getQuestionId, q -> q));
 
+        // Set of incoming question IDs from the request
         Set<Long> incomingQuestionIds = questionRequests.stream()
                 .map(QuestionRequest::questionId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // remove questions không còn
+        // Remove questions that are no longer in the request
         group.getQuestions().removeIf(q ->
                 q.getQuestionId() != null && !incomingQuestionIds.contains(q.getQuestionId()));
 
@@ -326,11 +324,17 @@ public class QuestionServiceImpl implements QuestionService {
             if (qr.questionId() != null) {
                 Question existing = existingQuestions.get(qr.questionId());
                 if (existing == null) {
-                    throw new ResourceInvalidException("Question not found: ID " + qr.questionId());
+                    // Check if the question exists in the database
+                    existing = questionRepository.findByQuestionId(qr.questionId())
+                            .orElseThrow(() -> new ResourceInvalidException("Question not found: ID " + qr.questionId()));
+                    // Associate the question with the group
+                    existing.setGroup(group);
+                    group.getQuestions().add(existing);
                 }
-                updateExistingQuestion(existing, qr);   // << upsert options được gọi ở đây
+                updateExistingQuestion(existing, qr); // Update the question with request data
             } else {
-                Question created = createQuestionFromRequest(qr, group); // đã add đủ options
+                // Create a new question
+                Question created = createQuestionFromRequest(qr, group);
                 group.getQuestions().add(created);
             }
         }
