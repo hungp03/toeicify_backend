@@ -19,7 +19,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.annotations.processing.SQL;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -236,6 +238,10 @@ public class UserAttemptServiceImpl implements UserAttemptService {
 
         return PaginationResponse.from(page, pageable);
     }
+
+
+
+    /* Helpers */
 
     private static List<Integer> parseParts(JsonNode partsNode) {
         if (partsNode == null || partsNode.isNull() || !partsNode.isArray()) return List.of();
