@@ -20,6 +20,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -177,51 +178,123 @@ public class UserAttemptServiceImpl implements UserAttemptService {
     }
 
 
+//    @Override
+//    public PaginationResponse getAttemptHistoryForCurrentUser(Pageable pageable) {
+//        Long userId = SecurityUtil.getCurrentUserId();
+//
+//        Page<Object[]> raw = userAttemptRepository.findAttemptHistory(userId, pageable);
+//
+//        Page<AttemptHistoryRow> mapped = raw.map(r -> {
+//            int i = 0;
+//            Long attemptId  = ((Number) r[i++]).longValue();
+//            Long examId     = ((Number) r[i++]).longValue();
+//            String examName = (String) r[i++];
+//
+//            Instant start   = toInstant(r[i++]);
+//            Instant end     = (r[i] == null) ? null : toInstant(r[i]); i++;
+//
+//            Boolean isFull  = (Boolean) r[i++];
+//            Integer score   = (r[i] == null) ? null : ((Number) r[i]).intValue(); i++;
+//            Integer correct = ((Number) r[i++]).intValue();
+//            Integer totalQ  = ((Number) r[i++]).intValue();
+//            String partsTxt = (String) r[i++];
+//
+//            List<Integer> parts = (partsTxt == null || partsTxt.isBlank())
+//                    ? List.of()
+//                    : Arrays.stream(partsTxt.split(",")).map(Integer::parseInt).toList();
+//
+//            long durationSec = (end != null ? Duration.between(start, end).getSeconds() : 0);
+//
+//            return new AttemptHistoryRow(
+//                    examId, examName,
+//                    AttemptItemResponse.builder()
+//                            .attemptId(attemptId)
+//                            .fullTest(isFull)
+//                            .parts(parts)
+//                            .correct(correct)
+//                            .total(totalQ)
+//                            .toeicScore(Boolean.TRUE.equals(isFull) ? score : null)
+//                            .startTime(start)
+//                            .endTime(end)
+//                            .durationSeconds(durationSec)
+//                            .build()
+//            );
+//        });
+//
+//        // Truyền cả mapped Page và pageable vào from(...)
+//        return PaginationResponse.from(mapped, pageable);
+//    }
+
     @Override
     public PaginationResponse getAttemptHistoryForCurrentUser(Pageable pageable) {
         Long userId = SecurityUtil.getCurrentUserId();
+        int limit  = pageable.getPageSize();
+        int offset = pageable.getPageNumber() * limit;
 
-        Page<Object[]> raw = userAttemptRepository.findAttemptHistory(userId, pageable);
+        // 1) Gọi function JSON
+        String payload = userAttemptRepository.findAttemptHistoryJson(userId, limit, offset);
 
-        Page<AttemptHistoryRow> mapped = raw.map(r -> {
-            int i = 0;
-            Long attemptId  = ((Number) r[i++]).longValue();
-            Long examId     = ((Number) r[i++]).longValue();
-            String examName = (String) r[i++];
+        // 2) Parse JSON
+        ObjectMapper om = new ObjectMapper();
+        JsonNode root;
+        try {
+            root = om.readTree(payload);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot parse attempt history JSON", e);
+        }
 
-            Instant start   = toInstant(r[i++]);
-            Instant end     = (r[i] == null) ? null : toInstant(r[i]); i++;
+        JsonNode metaNode   = root.path("meta");
+        JsonNode resultNode = root.path("result");
 
-            Boolean isFull  = (Boolean) r[i++];
-            Integer score   = (r[i] == null) ? null : ((Number) r[i]).intValue(); i++;
-            Integer correct = ((Number) r[i++]).intValue();
-            Integer totalQ  = ((Number) r[i++]).intValue();
-            String partsTxt = (String) r[i++];
+        // 3) Map JSON -> List<AttemptHistoryRow>
+        List<AttemptHistoryRow> content = new ArrayList<>();
+        if (resultNode.isArray()) {
+            for (JsonNode item : resultNode) {
+                long   examId   = item.path("examId").asLong();
+                String examName = item.path("examName").asText();
 
-            List<Integer> parts = (partsTxt == null || partsTxt.isBlank())
-                    ? List.of()
-                    : Arrays.stream(partsTxt.split(",")).map(Integer::parseInt).toList();
+                JsonNode a = item.path("attempt");
 
-            long durationSec = (end != null ? Duration.between(start, end).getSeconds() : 0);
+                AttemptItemResponse attempt = AttemptItemResponse.builder()
+                        .attemptId(a.path("attemptId").asLong())
+                        .fullTest(a.path("fullTest").asBoolean())
+                        .parts(parseParts(a.path("parts")))
+                        .correct(a.path("correct").asInt())
+                        .total(a.path("total").asInt())
+                        .toeicScore(a.path("toeicScore").isNull() ? null : a.path("toeicScore").asInt())
+                        .startTime(parseInstant(a.path("startTime")))
+                        .endTime(parseInstantNullable(a.path("endTime")))
+                        .durationSeconds(a.path("durationSeconds").asLong())
+                        .build();
 
-            return new AttemptHistoryRow(
-                    examId, examName,
-                    AttemptItemResponse.builder()
-                            .attemptId(attemptId)
-                            .fullTest(isFull)
-                            .parts(parts)
-                            .correct(correct)
-                            .total(totalQ)
-                            .toeicScore(Boolean.TRUE.equals(isFull) ? score : null)
-                            .startTime(start)
-                            .endTime(end)
-                            .durationSeconds(durationSec)
-                            .build()
-            );
-        });
+                content.add(new AttemptHistoryRow(examId, examName, attempt));
+            }
+        }
 
-        // Truyền cả mapped Page và pageable vào from(...)
-        return PaginationResponse.from(mapped, pageable);
+        // 4) Lấy total từ meta -> dựng PageImpl để dùng lại PaginationResponse.from(...)
+        long total = metaNode.path("total").asLong(0);
+        Page<AttemptHistoryRow> page = new PageImpl<>(content, pageable, total);
+
+        return PaginationResponse.from(page, pageable);  // giữ nguyên cách build meta/result như trước
+    }
+
+    /* Helpers */
+
+    private static List<Integer> parseParts(JsonNode partsNode) {
+        if (partsNode == null || partsNode.isNull() || !partsNode.isArray()) return List.of();
+        List<Integer> parts = new ArrayList<>();
+        for (JsonNode n : partsNode) parts.add(n.asInt());
+        return parts;
+    }
+
+    private static Instant parseInstant(JsonNode node) {
+        if (node == null || node.isNull()) return null;
+        // to_jsonb(timestamptz) -> ISO-8601 có offset; Instant.parse chấp nhận
+        return Instant.parse(node.asText());
+    }
+
+    private static Instant parseInstantNullable(JsonNode node) {
+        return parseInstant(node); // cho rõ ý nghĩa
     }
 
 
