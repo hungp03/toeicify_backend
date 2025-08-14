@@ -32,5 +32,12 @@ public interface ExamRepository extends JpaRepository<Exam, Long>, ExamRepositor
 
     List<Exam> findTop1ByOrderByCreatedAtDesc();
 
-
+    @Query(value = """
+        SELECT DATE_TRUNC('month', e.created_at) as month, COUNT(e.exam_id) as exam_count
+        FROM exams e
+        WHERE e.created_at >= :start AND e.created_at < :end
+        GROUP BY DATE_TRUNC('month', e.created_at)
+        ORDER BY month DESC
+    """, nativeQuery = true)
+    List<Object[]> countExamsByMonth(@Param("start") Instant start, @Param("end") Instant end);
 }

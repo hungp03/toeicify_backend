@@ -57,4 +57,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END " +
             "FROM User u WHERE u.userId = :userId AND u.isActive = true")
     boolean isUserActive(@Param("userId") Long userId);
+
+    @Query(value = """
+        SELECT DATE_TRUNC('month', u.registration_date) as month, COUNT(u.user_id) as user_count
+        FROM users u
+        WHERE u.registration_date >= :start AND u.registration_date < :end
+        GROUP BY DATE_TRUNC('month', u.registration_date)
+        ORDER BY month DESC
+    """, nativeQuery = true)
+
+    List<Object[]> countUsersByMonth(@Param("start") Instant start, @Param("end") Instant end);
+        @Query(value = """
+        SELECT DATE_TRUNC('day', u.registration_date) as day, COUNT(u.user_id) as user_count
+        FROM users u
+        WHERE u.registration_date >= :start AND u.registration_date < :end
+        GROUP BY DATE_TRUNC('day', u.registration_date)
+        ORDER BY day DESC
+    """, nativeQuery = true)
+        List<Object[]> countUsersByDay(@Param("start") Instant start, @Param("end") Instant end);
 }
