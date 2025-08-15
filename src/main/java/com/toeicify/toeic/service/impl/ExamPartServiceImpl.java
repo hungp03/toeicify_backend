@@ -53,7 +53,7 @@ public class ExamPartServiceImpl implements ExamPartService {
             throw new ResourceAlreadyExistsException("Cannot delete part because it contains questions");
         }
 
-        // 3) Gỡ part khỏi exam; orphanRemoval=true sẽ xóa record con khi save cha
+        // 3) Gỡ part khỏi exam
         exam.getExamParts().remove(part);
 
         // 4) Tính lại totalQuestions từ DB để chính xác
@@ -66,7 +66,7 @@ public class ExamPartServiceImpl implements ExamPartService {
     @Transactional(readOnly = true)
     @Override
     public List<MissingPartResponse> getMissingPartsOfExam(Long examId) {
-        // Lấy exam kèm parts (re-use method sẵn có của bạn)
+        // Lấy exam kèm parts
         Exam exam = examRepository.findWithPartsByExamId(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
 

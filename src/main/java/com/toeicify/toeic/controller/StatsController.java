@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.toeicify.toeic.dto.response.stats.AdminDashboardResponse;
 import com.toeicify.toeic.dto.response.stats.UserProgressResponse;
 import com.toeicify.toeic.service.StatsService;
+import com.toeicify.toeic.dto.response.stats.ChartPracticePointData;
+import com.toeicify.toeic.service.UserAttemptService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
