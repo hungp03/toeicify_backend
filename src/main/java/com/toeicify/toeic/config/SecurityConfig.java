@@ -61,6 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/question-groups").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/question-groups/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/question-groups/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/question-groups/by-parts").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/question-groups/search").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/question-groups/{id}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/question-groups/{id}").hasRole("ADMIN")

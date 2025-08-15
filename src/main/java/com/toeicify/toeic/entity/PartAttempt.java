@@ -28,7 +28,7 @@ public class PartAttempt {
     @JoinColumn(name = "part_id", nullable = false)
     private ExamPart part;
 
-    private Integer scorePart;
+    private Integer correct_percentage;
 
     private Instant startTime;
     private Instant endTime;
