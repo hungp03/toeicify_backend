@@ -10,7 +10,6 @@ import com.toeicify.toeic.dto.response.exam.ExamSubmissionResponse;
 import com.toeicify.toeic.service.ExamService;
 import com.toeicify.toeic.util.annotation.ApiMessage;
 import com.toeicify.toeic.util.enums.ExamStatus;
-import com.toeicify.toeic.service.impl.UserAttemptServiceImpl;
 import com.toeicify.toeic.service.UserAttemptService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -30,11 +29,13 @@ public class ExamController {
     private final UserAttemptService userAttemptService;
 
     @PostMapping
+    @ApiMessage("Create exam")
     public ResponseEntity<ExamResponse> createExam(@Valid @RequestBody ExamRequest exam) {
         return ResponseEntity.status(HttpStatus.CREATED).body(examService.createExam(exam));
     }
 
     @GetMapping("/{id}")
+    @ApiMessage("Get exam by id")
     public ResponseEntity<ExamResponse> getExamById(@PathVariable Long id) {
         return ResponseEntity.ok(examService.getExamById(id));
     }
@@ -44,6 +45,7 @@ public class ExamController {
     }
 
     @PutMapping("/{id}")
+    @ApiMessage("Update exam")
     public ResponseEntity<ExamResponse> updateExam(
             @PathVariable Long id,
             @Valid @RequestBody ExamRequest request
@@ -52,6 +54,7 @@ public class ExamController {
     }
 
     @GetMapping
+    @ApiMessage("Get exams")
     public ResponseEntity<PaginationResponse> searchExams(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
@@ -62,6 +65,7 @@ public class ExamController {
     }
 
     @DeleteMapping("{id}")
+    @ApiMessage("Delete exam")
     public ResponseEntity<ExamResponse> deleteExam(@PathVariable Long id) {
         examService.deleteById(id);
         return ResponseEntity.noContent().build();
@@ -79,6 +83,7 @@ public class ExamController {
 
 
     @PostMapping("submit")
+    @ApiMessage("Submit exam")
     public ResponseEntity<ExamSubmissionResponse> submitExam(
             @RequestBody @Valid SubmitExamRequest request) throws JsonProcessingException {
         ExamSubmissionResponse response = userAttemptService.submitExam(request);
@@ -86,10 +91,10 @@ public class ExamController {
     }
 
     @GetMapping("/attempts/{attemptId}/result")
+    @ApiMessage("Get exam result")
     public ResponseEntity<ExamResultDetailResponse> getExamResult(
             @PathVariable @Positive Long attemptId) {
         ExamResultDetailResponse result = userAttemptService.getExamResult(attemptId);
         return ResponseEntity.ok(result);
     }
-
 }

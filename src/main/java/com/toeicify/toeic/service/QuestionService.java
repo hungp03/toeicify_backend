@@ -21,6 +21,5 @@ public interface QuestionService {
     JsonNode getExamQuestionsByExam(Long examId);
     List<QuestionGroupResponse> getQuestionGroupsByPartId(Long partId);
     PaginationResponse searchQuestionGroups(Long partId, int page, int size);
-
     QuestionExplainResponse getExplain(Long questionId);
 }

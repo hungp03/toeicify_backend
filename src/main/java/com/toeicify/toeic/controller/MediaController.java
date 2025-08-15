@@ -20,19 +20,13 @@ import java.io.IOException;
 public class MediaController {
     private final MediaService mediaService;
 
-//    @PostMapping("/upload")
-//    public ResponseEntity<String> upload(@RequestParam("file") MultipartFile file, @RequestParam(name = "folder", defaultValue = "uploads") String folder ) throws IOException {
-//        String key = mediaService.uploadFile(file, folder);
-//        return ResponseEntity.ok(key);
-//    }
-
     @PostMapping(value = "/upload", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam(name = "folder", defaultValue = "uploads") String folder
     ) throws IOException {
         String key = mediaService.uploadFile(file, folder);
-        return ResponseEntity.ok(key); // key là public URL bạn trả về
+        return ResponseEntity.ok(key);
     }
 
 //    @GetMapping("/signed-url")

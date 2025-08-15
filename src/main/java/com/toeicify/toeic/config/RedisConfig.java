@@ -45,7 +45,7 @@ public class RedisConfig {
         configuration.setPassword(redisPassword.isEmpty() ? null : redisPassword);
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
                 .commandTimeout(Duration.ofSeconds(60))
-                .useSsl()                                // SSL
+//                .useSsl()                                // SSL
                 .build();
         return new LettuceConnectionFactory(configuration, clientConfig);
     }
@@ -87,6 +87,7 @@ public class RedisConfig {
         cacheConfigurations.put("userStatus", RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofHours(1))
                 .disableCachingNullValues());
+
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)

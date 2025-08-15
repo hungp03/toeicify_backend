@@ -1,9 +1,6 @@
 package com.toeicify.toeic.repository;
 
 import com.toeicify.toeic.entity.UserAttempt;
-import com.toeicify.toeic.projection.PracticeScorePoint;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -65,9 +62,18 @@ public interface UserAttemptRepository extends JpaRepository<UserAttempt, Long> 
     boolean existsOwnedBy(@Param("attemptId") Long attemptId,
                           @Param("userId") Long userId);
 
-
     @Query(value = "SELECT get_user_progress(:userId, :limit)", nativeQuery = true)
     String getUserProgress(@Param("userId") Long userId, @Param("limit") Integer limit);
-
     List<UserAttempt> findTop1ByOrderByEndTimeDesc();
+
+    // Gọi bản đủ tham số (có offset) để phân trang các attempt của user
+    @Query(value = "SELECT find_attempt_history(:userId, :limit, :offset)", nativeQuery = true)
+    String findAttemptHistoryJson(@Param("userId") Long userId,
+                                  @Param("limit") int limit,
+                                  @Param("offset") int offset);
+
+    // (Tiện dụng) Gọi trang đầu (offset = 0)
+    @Query(value = "SELECT find_attempt_history(:userId, :limit)", nativeQuery = true)
+    String findAttemptHistoryFirstPage(@Param("userId") Long userId,
+                                       @Param("limit") int limit);
 }
