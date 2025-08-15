@@ -142,27 +142,21 @@ public class QuestionServiceImpl implements QuestionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Exam part not found"));
 
         partStructureValidator.validatePartStructure(request, examPart.getPartNumber());
-
         // Update group fields
         questionGroup.setPart(examPart);
         questionGroup.setPassageText(request.passageText());
         questionGroup.setImageUrl(request.imageUrl());
         questionGroup.setAudioUrl(request.audioUrl());
-
         // Upsert questions + options trên collection managed
         int beforeCount = questionGroup.getQuestions() != null ? questionGroup.getQuestions().size() : 0;
         updateQuestionsForGroup(questionGroup, request.questions());
         int afterCount  = questionGroup.getQuestions() != null ? questionGroup.getQuestions().size() : 0;
-
         QuestionGroup savedGroup = questionGroupRepository.save(questionGroup);
-
         // CẬP NHẬT questionCount của Part (chênh lệch)
         int partCurrent = examPart.getQuestionCount() != null ? examPart.getQuestionCount() : 0;
         examPart.setQuestionCount(partCurrent + (afterCount - beforeCount));
-
         // CẬP NHẬT totalQuestions của Exam
         recalcExamTotalQuestions(examPart.getExam());
-
         return questionMapper.toQuestionGroupResponse(savedGroup);
     }
 
@@ -190,13 +184,13 @@ public class QuestionServiceImpl implements QuestionService {
     @Cacheable(value = "toeicPart", keyGenerator = "toeicPartKeyGenerator")
     public JsonNode getQuestionsByPartIds(List<Long> partIds) {
         if (partIds == null || partIds.isEmpty()) {
-            throw new IllegalArgumentException("partIds must not be empty");
+            throw new ResourceInvalidException("partIds must not be empty");
         }
 
         // Kiểm tra tất cả part thuộc cùng 1 đề thi
         List<Long> examIds = examPartRepository.findDistinctExamIdsByPartIds(partIds);
         if (examIds.size() != 1) {
-            throw new IllegalArgumentException("All partIds must belong to the same exam");
+            throw new ResourceInvalidException("All partIds must belong to the same exam");
         }
 
         Long[] partIdArray = partIds.toArray(new Long[0]);
@@ -217,7 +211,7 @@ public class QuestionServiceImpl implements QuestionService {
         // Step 2: Get all Questions with Options for this part
         List<Question> allQuestionsWithOptions = groups.stream()
                 .flatMap(group -> questionRepository.findByGroupGroupIdWithOptions(group.getGroupId()).stream())
-                .collect(Collectors.toList());
+                .toList();
 
         // Step 3: Group options by question ID
         Map<Long, List<QuestionOption>> optionsByQuestionId = allQuestionsWithOptions.stream()
@@ -258,7 +252,7 @@ public class QuestionServiceImpl implements QuestionService {
         try {
             return objectMapper.readTree(json);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Invalid JSON from DB", e);
+            throw new RuntimeException("Invalid JSON: ", e);
         }
     }
 
@@ -300,25 +294,26 @@ public class QuestionServiceImpl implements QuestionService {
 
         question.setOptions(opts); // set inverse side
 
-        // Note: We need to add options to Question entity if there's a relationship
-        // This depends on your Question entity structure
-
         return question;
     }
 
     private void updateQuestionsForGroup(QuestionGroup group, List<QuestionRequest> questionRequests) {
-        if (group.getQuestions() == null) group.setQuestions(new ArrayList<>());
+        if (group.getQuestions() == null) {
+            group.setQuestions(new ArrayList<>());
+        }
 
+        // Map of existing questions in the group
         Map<Long, Question> existingQuestions = group.getQuestions().stream()
                 .filter(q -> q.getQuestionId() != null)
                 .collect(Collectors.toMap(Question::getQuestionId, q -> q));
 
+        // Set of incoming question IDs from the request
         Set<Long> incomingQuestionIds = questionRequests.stream()
                 .map(QuestionRequest::questionId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // remove questions không còn
+        // Remove questions that are no longer in the request
         group.getQuestions().removeIf(q ->
                 q.getQuestionId() != null && !incomingQuestionIds.contains(q.getQuestionId()));
 
@@ -326,11 +321,17 @@ public class QuestionServiceImpl implements QuestionService {
             if (qr.questionId() != null) {
                 Question existing = existingQuestions.get(qr.questionId());
                 if (existing == null) {
-                    throw new ResourceInvalidException("Question not found: ID " + qr.questionId());
+                    // Check if the question exists in the database
+                    existing = questionRepository.findByQuestionId(qr.questionId())
+                            .orElseThrow(() -> new ResourceInvalidException("Question not found: ID " + qr.questionId()));
+                    // Associate the question with the group
+                    existing.setGroup(group);
+                    group.getQuestions().add(existing);
                 }
-                updateExistingQuestion(existing, qr);   // << upsert options được gọi ở đây
+                updateExistingQuestion(existing, qr); // Update the question with request data
             } else {
-                Question created = createQuestionFromRequest(qr, group); // đã add đủ options
+                // Create a new question
+                Question created = createQuestionFromRequest(qr, group);
                 group.getQuestions().add(created);
             }
         }

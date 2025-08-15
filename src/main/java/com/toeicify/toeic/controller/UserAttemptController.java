@@ -22,11 +22,10 @@ public class UserAttemptController {
     private final UserAttemptService userAttemptService;
 
     @GetMapping("/history")
-    @ApiMessage("Get my attempt history (paged by attempts)")
+    @ApiMessage("Get attempt history")
     public ResponseEntity<PaginationResponse> getMyAttemptHistory(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-
         Pageable pageable = PageRequest.of(Math.max(page - 1, 0), size);
         return ResponseEntity.ok(userAttemptService.getAttemptHistoryForCurrentUser(pageable));
     }

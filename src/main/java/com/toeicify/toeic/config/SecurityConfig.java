@@ -44,37 +44,40 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(whiteList).permitAll()
-
+                        // Exam
                         .requestMatchers(HttpMethod.GET, "/api/exams", "/api/exams/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/exams/search").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/exams").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/exams/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/exams/{id}/status").hasRole("ADMIN")
 
+                        // Exam category
                         .requestMatchers(HttpMethod.GET, "/api/exam-categories", "/api/exam-categories/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/exam-categories").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/exam-categories/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/exam-categories/**").hasRole("ADMIN")
-
+                        // Media
                         .requestMatchers(HttpMethod.POST, "/api/media/upload").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/media/**").hasRole("ADMIN")
-
+                        //Question
                         .requestMatchers(HttpMethod.POST, "/api/question-groups").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/question-groups/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/question-groups/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/question-groups/search").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/question-groups/by-part/{partId}").hasRole("ADMIN")
 
+                        .requestMatchers(HttpMethod.GET, "/api/question-groups/{id}").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/question-groups/{id}").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/question-groups/{id}").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}/toggle-status").hasRole("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/exam-parts//missing/{examId}").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/exam-parts/{partId}").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.GET, "/api/stats/admin-dashboard").hasRole("ADMIN")
 
-
+                        .requestMatchers(HttpMethod.GET, "/api/exam-parts/missing/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/exam-parts/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)

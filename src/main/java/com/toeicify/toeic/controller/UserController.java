@@ -36,7 +36,7 @@ public class UserController {
     }
 
     @GetMapping
-    @ApiMessage("Get paginated list of users")
+    @ApiMessage("Get list of users")
     public ResponseEntity<PaginationResponse> getUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
