@@ -18,16 +18,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.math.RoundingMode;
+import java.sql.Timestamp;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -67,56 +67,148 @@ public class StatsServiceImpl implements StatsService {
         return new UserProgressResponse(summary, highs, trend);
     }
 
-
     @Override
     public AdminDashboardResponse getDashboardData() {
-
+        // Tổng số liệu
         long totalUsers = userRepository.count();
         long totalExams = examRepository.count();
         long totalQuestions = questionRepository.count();
 
+        // Tính toán tăng trưởng
         LocalDate now = LocalDate.now();
         LocalDate firstOfThisMonth = now.with(TemporalAdjusters.firstDayOfMonth());
         LocalDate firstOfLastMonth = firstOfThisMonth.minusMonths(1);
         long usersThisMonth = userRepository.countByRegistrationDateAfter(firstOfThisMonth.atStartOfDay(ZoneOffset.UTC).toInstant());
         long usersLastMonth = userRepository.countByRegistrationDateBetween(firstOfLastMonth.atStartOfDay(ZoneOffset.UTC).toInstant(), firstOfThisMonth.atStartOfDay(ZoneOffset.UTC).toInstant());
-        String growth = "";
-        if(usersThisMonth==0 && usersLastMonth==0){
-            growth ="+0";
-        }
-        else if(usersLastMonth == 0){
-            growth = "+100";
-        }
-        else if(usersThisMonth==0){
+        String growth;
+        if (usersThisMonth == 0 && usersLastMonth == 0) {
             growth = "+0%";
+        } else if (usersLastMonth == 0) {
+            growth = "+100%";
+        } else if (usersThisMonth == 0) {
+            growth = "-100%";
         } else {
-            growth = usersLastMonth > 0 ? "+" + ((usersThisMonth / usersLastMonth)) + "%" : "+0%";
+            BigDecimal growthRate = BigDecimal.valueOf(usersThisMonth)
+                    .divide(BigDecimal.valueOf(usersLastMonth), 2, RoundingMode.HALF_UP)
+                    .subtract(BigDecimal.ONE)
+                    .multiply(BigDecimal.valueOf(100));
+            growth = (growthRate.compareTo(BigDecimal.ZERO) >= 0 ? "+" : "") + growthRate.setScale(0, RoundingMode.HALF_UP) + "%";
         }
+
         List<AdminDashboardResponse.StatItem> stats = List.of(
-                AdminDashboardResponse.StatItem.builder().title("Tổng người dùng").value(String.valueOf(totalUsers)).change("").color("text-blue-600").build(),
-                AdminDashboardResponse.StatItem.builder().title("Số đề thi").value(String.valueOf(totalExams)).change("").color("text-green-600").build(),
-                AdminDashboardResponse.StatItem.builder().title("Số câu hỏi").value(String.valueOf(totalQuestions)).change("").color("text-purple-600").build(),
-                AdminDashboardResponse.StatItem.builder().title("Tăng trưởng").value(growth.replace("+", "")).change("").color("text-orange-600").build()
+                AdminDashboardResponse.StatItem.builder().title("Tổng người dùng").value(String.valueOf(totalUsers)).build(),
+                AdminDashboardResponse.StatItem.builder().title("Số đề thi").value(String.valueOf(totalExams)).build(),
+                AdminDashboardResponse.StatItem.builder().title("Số câu hỏi").value(String.valueOf(totalQuestions)).build(),
+                AdminDashboardResponse.StatItem.builder().title("Tăng trưởng").value(growth.replace("+", "")).build()
         );
 
+        // Tối ưu monthlyData
         List<AdminDashboardResponse.MonthlyDataItem> monthlyData = new ArrayList<>();
         DateTimeFormatter monthFormatter = DateTimeFormatter.ofPattern("MMM");
+        LocalDate start = now.minusMonths(6).with(TemporalAdjusters.firstDayOfMonth());
+        LocalDate end = now.with(TemporalAdjusters.lastDayOfMonth());
+
+        // Lấy dữ liệu users theo tháng
+        List<Object[]> userCounts = userRepository.countUsersByMonth(
+                start.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                end.atStartOfDay(ZoneOffset.UTC).toInstant().plus(1, ChronoUnit.DAYS)
+        );
+
+        // Lấy dữ liệu exams theo tháng
+        List<Object[]> examCounts = examRepository.countExamsByMonth(
+                start.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                end.atStartOfDay(ZoneOffset.UTC).toInstant().plus(1, ChronoUnit.DAYS)
+        );
+
+        // Gộp dữ liệu vào monthlyData
+        Map<String, Long> userMap = userCounts.stream()
+                .collect(Collectors.toMap(
+                        arr -> {
+                            Object dateObj = arr[0];
+                            LocalDateTime dateTime;
+                            if (dateObj instanceof Timestamp) {
+                                dateTime = ((Timestamp) dateObj).toLocalDateTime();
+                            } else if (dateObj instanceof Instant) {
+                                dateTime = LocalDateTime.ofInstant((Instant) dateObj, ZoneOffset.UTC);
+                            } else {
+                                throw new IllegalStateException("Unsupported date type: " + dateObj.getClass());
+                            }
+                            return dateTime.format(monthFormatter);
+                        },
+                        arr -> (Long) arr[1],
+                        (v1, v2) -> v1
+                ));
+
+        Map<String, Long> examMap = examCounts.stream()
+                .collect(Collectors.toMap(
+                        arr -> {
+                            Object dateObj = arr[0];
+                            LocalDateTime dateTime;
+                            if (dateObj instanceof Timestamp) {
+                                dateTime = ((Timestamp) dateObj).toLocalDateTime();
+                            } else if (dateObj instanceof Instant) {
+                                dateTime = LocalDateTime.ofInstant((Instant) dateObj, ZoneOffset.UTC);
+                            } else {
+                                throw new IllegalStateException("Unsupported date type: " + dateObj.getClass());
+                            }
+                            return dateTime.format(monthFormatter);
+                        },
+                        arr -> (Long) arr[1],
+                        (v1, v2) -> v1
+                ));
+
         for (int i = 5; i >= 0; i--) {
-            LocalDate monthStart = now.minusMonths(i).with(TemporalAdjusters.firstDayOfMonth());
-            LocalDate monthEnd = monthStart.with(TemporalAdjusters.lastDayOfMonth());
-            long users = userRepository.countByRegistrationDateBetween(monthStart.atStartOfDay(ZoneOffset.UTC).toInstant(), monthEnd.atStartOfDay(ZoneOffset.UTC).toInstant().plus(1, ChronoUnit.DAYS));
-            long tests = examRepository.countByCreatedAtBetween(monthStart.atStartOfDay(ZoneOffset.UTC).toInstant(), monthEnd.atStartOfDay(ZoneOffset.UTC).toInstant().plus(1, ChronoUnit.DAYS));
-            monthlyData.add(AdminDashboardResponse.MonthlyDataItem.builder().name(monthStart.format(monthFormatter)).users(users).tests(tests).build());
+            LocalDate month = now.minusMonths(i);
+            String monthName = month.format(monthFormatter);
+            long users = userMap.getOrDefault(monthName, 0L);
+            long tests = examMap.getOrDefault(monthName, 0L);
+            monthlyData.add(AdminDashboardResponse.MonthlyDataItem.builder()
+                    .name(monthName)
+                    .users(users)
+                    .tests(tests)
+                    .build());
         }
 
+        // Tối ưu weeklyGrowth
         List<AdminDashboardResponse.WeeklyGrowthItem> weeklyGrowth = new ArrayList<>();
         DateTimeFormatter dayFormatter = DateTimeFormatter.ofPattern("EEE");
+        start = now.minusDays(7);
+        end = now;
+
+        List<Object[]> dailyUserCounts = userRepository.countUsersByDay(
+                start.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                end.atStartOfDay(ZoneOffset.UTC).toInstant().plus(1, ChronoUnit.DAYS)
+        );
+
+        Map<String, Long> dailyUserMap = dailyUserCounts.stream()
+                .collect(Collectors.toMap(
+                        arr -> {
+                            Object dateObj = arr[0];
+                            LocalDateTime dateTime;
+                            if (dateObj instanceof Timestamp) {
+                                dateTime = ((Timestamp) dateObj).toLocalDateTime();
+                            } else if (dateObj instanceof Instant) {
+                                dateTime = LocalDateTime.ofInstant((Instant) dateObj, ZoneOffset.UTC);
+                            } else {
+                                throw new IllegalStateException("Unsupported date type: " + dateObj.getClass());
+                            }
+                            return dateTime.format(dayFormatter);
+                        },
+                        arr -> (Long) arr[1],
+                        (v1, v2) -> v1
+                ));
+
         for (int i = 6; i >= 0; i--) {
             LocalDate day = now.minusDays(i);
-            long value = userRepository.countByRegistrationDateBetween(day.atStartOfDay(ZoneOffset.UTC).toInstant(), day.atStartOfDay(ZoneOffset.UTC).toInstant().plus(1, ChronoUnit.DAYS));
-            weeklyGrowth.add(AdminDashboardResponse.WeeklyGrowthItem.builder().name(day.format(dayFormatter)).value(value).build());
+            String dayName = day.format(dayFormatter);
+            long value = dailyUserMap.getOrDefault(dayName, 0L);
+            weeklyGrowth.add(AdminDashboardResponse.WeeklyGrowthItem.builder()
+                    .name(dayName)
+                    .value(value)
+                    .build());
         }
 
+        // Hoạt động gần đây
         List<User> recentUsers = userRepository.findTop1ByOrderByRegistrationDateDesc();
         List<AdminDashboardResponse.ActivityItem> activities = recentUsers.stream()
                 .map(u -> AdminDashboardResponse.ActivityItem.builder()
@@ -134,16 +226,20 @@ public class StatsServiceImpl implements StatsService {
                         .time(durationToString(e.getCreatedAt()))
                         .build())
                 .toList());
-        List<UserAttempt> recentUserAttempt = userAttemptRepository.findTop1ByOrderByEndTimeDesc();
 
+        List<UserAttempt> recentUserAttempt = userAttemptRepository.findTop1ByOrderByEndTimeDesc();
         activities.addAll(recentUserAttempt.stream()
                 .map(a -> AdminDashboardResponse.ActivityItem.builder()
-                        .action("Người dùng hoàn thành bài thi")
+                        .action("Người dùng hoàn thành bài thi mới nhất")
                         .user(a.getUser().getUsername())
                         .time(durationToString(a.getEndTime()))
                         .build())
                 .toList());
-        activities = activities.stream().sorted(Comparator.comparing(a -> parseTime(a.getTime()))).limit(4).toList(); // Sort và limit 4
+
+        activities = activities.stream()
+                .sorted(Comparator.comparing(a -> parseTime(a.getTime())))
+                .limit(4)
+                .toList();
 
         return AdminDashboardResponse.builder()
                 .stats(stats)
