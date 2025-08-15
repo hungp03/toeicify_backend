@@ -49,6 +49,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/exams/search").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/exams").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/exams/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/exams/{id}/status").hasRole("ADMIN")
+
                         // Exam category
                         .requestMatchers(HttpMethod.GET, "/api/exam-categories", "/api/exam-categories/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/exam-categories").hasRole("ADMIN")
@@ -63,12 +65,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/question-groups/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/question-groups/by-parts").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/question-groups/search").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/question-groups/by-part/{partId}").hasRole("ADMIN")
+
                         .requestMatchers(HttpMethod.GET, "/api/question-groups/{id}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/question-groups/{id}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/question-groups/{id}").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}/toggle-status").hasRole("ADMIN")
+
 
                         .requestMatchers(HttpMethod.GET, "/api/stats/admin-dashboard").hasRole("ADMIN")
 
