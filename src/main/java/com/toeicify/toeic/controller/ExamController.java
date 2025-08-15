@@ -64,6 +64,16 @@ public class ExamController {
         return ResponseEntity.ok(examService.searchExams(keyword, categoryId, page, size));
     }
 
+    @GetMapping("/public")
+    public ResponseEntity<PaginationResponse> searchExamsForClient(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(examService.searchExamsForClient(keyword, categoryId, page, size));
+    }
+
     @DeleteMapping("{id}")
     @ApiMessage("Delete exam")
     public ResponseEntity<ExamResponse> deleteExam(@PathVariable Long id) {
