@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class StatsController {
     private final StatsService statsService;
-    private final UserAttemptService userAttemptService;
 
     @GetMapping("/progress")
     public ResponseEntity<UserProgressResponse> getUserProgress(

@@ -84,7 +84,7 @@ public class StatsServiceImpl implements StatsService {
         if(usersThisMonth==0 && usersLastMonth==0){
             growth ="+0";
         }
-        else if(usersLastMonth==0 && usersThisMonth != 0){
+        else if(usersLastMonth == 0){
             growth = "+100";
         }
         else if(usersThisMonth==0){

@@ -90,6 +90,7 @@ springdoc:
 
 app:
   client: ${APP_CLIENT}
+  verification-link: ${VERIFICATION_LINK}
 
 cloud:
   endpoint: ${S3_ENDPOINT}
