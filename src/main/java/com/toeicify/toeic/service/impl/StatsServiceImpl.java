@@ -83,7 +83,7 @@ public class StatsServiceImpl implements StatsService {
         String growth;
         if (usersThisMonth == 0 && usersLastMonth == 0) {
             growth = "+0%";
-        } else if (usersLastMonth == 0 && usersThisMonth != 0) {
+        } else if (usersLastMonth == 0) {
             growth = "+100%";
         } else if (usersThisMonth == 0) {
             growth = "-100%";
@@ -175,13 +175,11 @@ public class StatsServiceImpl implements StatsService {
         start = now.minusDays(7);
         end = now;
 
-        // Lấy dữ liệu users theo ngày
         List<Object[]> dailyUserCounts = userRepository.countUsersByDay(
                 start.atStartOfDay(ZoneOffset.UTC).toInstant(),
                 end.atStartOfDay(ZoneOffset.UTC).toInstant().plus(1, ChronoUnit.DAYS)
         );
 
-        // Tạo map để tra cứu nhanh
         Map<String, Long> dailyUserMap = dailyUserCounts.stream()
                 .collect(Collectors.toMap(
                         arr -> {
@@ -259,7 +257,6 @@ public class StatsServiceImpl implements StatsService {
     }
 
     private Instant parseTime(String timeStr) {
-        // TODO: Cải thiện parseTime để parse chuỗi thời gian chính xác
-        return Instant.now(); // Hiện tại giữ nguyên, nhưng nên cải thiện
+        return Instant.now();
     }
 }
