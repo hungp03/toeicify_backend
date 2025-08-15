@@ -18,6 +18,8 @@ public interface ExamService {
     ExamResponse getExamByIdFresh(Long id);
     @Transactional(readOnly = true)
     PaginationResponse searchExams(String keyword, Long categoryId, int page, int size);
+    @Transactional(readOnly = true)
+    PaginationResponse searchExamsForClient(String keyword, Long categoryId, int page, int size);
 
     @Transactional
     ExamResponse updateExam(Long id, ExamRequest request);

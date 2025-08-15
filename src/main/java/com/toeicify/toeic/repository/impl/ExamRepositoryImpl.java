@@ -9,6 +9,7 @@ import com.toeicify.toeic.entity.q.QExam;
 import com.toeicify.toeic.entity.q.QExamCategory;
 import com.toeicify.toeic.entity.q.QExamPart;
 import com.toeicify.toeic.repository.custom.ExamRepositoryCustom;
+import com.toeicify.toeic.util.enums.ExamStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -72,4 +73,56 @@ public class ExamRepositoryImpl implements ExamRepositoryCustom {
 
         return new PageImpl<>(content, pageable, total != null ? total : 0L);
     }
+    @Override
+    public Page<ExamListItemResponse> searchExamsForClient(String keyword, Long categoryId, Pageable pageable) {
+        QExam exam = QExam.exam;
+        QExamCategory category = QExamCategory.examCategory;
+        QExamPart part = QExamPart.examPart;
+
+        // Filter
+        BooleanExpression keywordCondition = null;
+        if (StringUtils.hasText(keyword)) {
+            keywordCondition = exam.examName.containsIgnoreCase(keyword)
+                    .or(exam.examDescription.containsIgnoreCase(keyword))
+                    .or(category.categoryName.containsIgnoreCase(keyword));
+        }
+
+        BooleanExpression categoryCondition = categoryId != null ? category.categoryId.eq(categoryId) : null;
+
+        // Thêm điều kiện status = PUBLIC
+        BooleanExpression statusCondition = exam.status.eq(ExamStatus.valueOf("PUBLIC"));
+
+        List<ExamListItemResponse> content = queryFactory
+                .select(Projections.constructor(ExamListItemResponse.class,
+                        exam.examId,
+                        exam.examName,
+                        exam.examDescription,
+                        exam.totalQuestions,
+                        category.categoryName,
+                        // Subquery count parts
+                        JPAExpressions.select(part.count().intValue())
+                                .from(part)
+                                .where(part.exam.eq(exam)),
+                        exam.createdAt,
+                        exam.status.stringValue()
+                ))
+                .from(exam)
+                .leftJoin(exam.examCategory, category)
+                .where(keywordCondition, categoryCondition, statusCondition) // thêm vào đây
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .orderBy(exam.createdAt.desc())
+                .fetch();
+
+        // Count
+        Long total = queryFactory
+                .select(exam.count())
+                .from(exam)
+                .leftJoin(exam.examCategory, category)
+                .where(keywordCondition, categoryCondition, statusCondition) // và ở đây nữa
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, total != null ? total : 0L);
+    }
+
 }

@@ -129,6 +129,13 @@ public class ExamServiceImpl implements ExamService {
         return PaginationResponse.from(pageResult, pageable);
     }
 
+    @Override
+    public PaginationResponse searchExamsForClient(String keyword, Long categoryId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<ExamListItemResponse> pageResult = examRepository.searchExamsForClient(keyword, categoryId, pageable);
+        return PaginationResponse.from(pageResult, pageable);
+    }
+
     @Transactional
     @Override
     public ExamResponse updateExam(Long id, ExamRequest request) {
