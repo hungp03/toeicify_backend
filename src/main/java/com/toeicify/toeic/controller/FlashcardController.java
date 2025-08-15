@@ -23,7 +23,7 @@ public class FlashcardController {
     private final FlashcardService flashcardListService;
 
     @GetMapping("/list")
-    @ApiMessage("Get paginated flashcard lists")
+    @ApiMessage("Get flashcard lists")
     public ResponseEntity<PaginationResponse> getLists(
             @RequestParam String type,
             @RequestParam(defaultValue = "0") int page,
@@ -55,7 +55,7 @@ public class FlashcardController {
     }
 
     @GetMapping("/list/{id}/cards")
-    @ApiMessage("Get paginated flashcards in a list")
+    @ApiMessage("Get flashcards in a list")
     public ResponseEntity<PaginationResponse> getFlashcardsInList(
             @PathVariable Long id,
             @RequestParam(defaultValue = "0") int page,
@@ -116,7 +116,7 @@ public class FlashcardController {
         return ResponseEntity.ok().build();
     }
     @PutMapping("/list/{listId}/stop-learning")
-    @ApiMessage("Stop learning this list")
+    @ApiMessage("Stop learning list")
     public ResponseEntity<Void> stopLearning(@PathVariable Long listId) {
         flashcardListService.stopLearningList(listId);
         return ResponseEntity.ok().build();

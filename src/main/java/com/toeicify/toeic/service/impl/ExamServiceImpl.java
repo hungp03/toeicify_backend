@@ -84,18 +84,15 @@ public class ExamServiceImpl implements ExamService {
     @Cacheable(value = "toeicExam",  key = "#id")
     public ExamResponse getExamById(Long id) {
         Exam exam = examRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Exam not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
         return examMapper.toExamResponse(exam);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ExamResponse getExamByIdFresh(Long id) {
-        // Load kèm parts để tránh N+1 và có đủ dữ liệu tính tổng
         Exam exam = examRepository.findWithPartsByExamId(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-
-        // Tính lại tổng câu hỏi từ các part (Single Source of Truth)
         int total = exam.getExamParts() == null ? 0 :
                 exam.getExamParts().stream()
                         .map(p -> p.getQuestionCount() == null ? 0 : p.getQuestionCount())
@@ -104,8 +101,6 @@ public class ExamServiceImpl implements ExamService {
 
         // Map sang DTO
         ExamResponse dto = examMapper.toExamResponse(exam);
-
-        // Trả về bản DTO với totalQuestions đã được cập nhật (không ghi DB)
         return new ExamResponse(
                 dto.examId(),
                 dto.examName(),
@@ -140,7 +135,7 @@ public class ExamServiceImpl implements ExamService {
     @Override
     public ExamResponse updateExam(Long id, ExamRequest request) {
         Exam exam = examRepository.findWithPartsByExamId(id)
-                .orElseThrow(() -> new RuntimeException("Exam not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
 
         ExamCategory category = examCategoryService.findExamCategoryById(request.categoryId());
 
@@ -154,18 +149,15 @@ public class ExamServiceImpl implements ExamService {
                 .filter(p -> p.getPartId() != null)
                 .collect(Collectors.toMap(ExamPart::getPartId, p -> p));
 
-        // ID của các part từ request
         Set<Long> incomingPartIds = request.examParts().stream()
                 .map(ExamPartRequest::partId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // Xóa các part không nằm trong request
         exam.getExamParts().removeIf(part -> part.getPartId() != null && !incomingPartIds.contains(part.getPartId()));
 
         for (ExamPartRequest dto : request.examParts()) {
             if (dto.partId() != null) {
-                // Sửa part cũ
                 ExamPart part = existingParts.get(dto.partId());
                 if (part != null) {
                     part.setPartNumber(dto.partNumber());
@@ -173,10 +165,9 @@ public class ExamServiceImpl implements ExamService {
                     part.setDescription(dto.description());
                     part.setQuestionCount(dto.questionCount());
                 } else {
-                    throw new ResourceInvalidException("Part not found: ID " + dto.partId());
+                    throw new ResourceNotFoundException("Part not found: ID " + dto.partId());
                 }
             } else {
-                // Thêm part mới
                 ExamPart newPart = ExamPart.builder()
                         .exam(exam)
                         .partNumber(dto.partNumber())
