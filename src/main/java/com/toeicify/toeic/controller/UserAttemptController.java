@@ -1,6 +1,7 @@
 package com.toeicify.toeic.controller;
 
 import com.toeicify.toeic.dto.response.PaginationResponse;
+import com.toeicify.toeic.dto.response.attempt.AttemptsCountResponse;
 import com.toeicify.toeic.dto.response.attempt.ExamHistoryResponse;
 import com.toeicify.toeic.service.UserAttemptService;
 import com.toeicify.toeic.util.annotation.ApiMessage;
@@ -28,5 +29,9 @@ public class UserAttemptController {
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(Math.max(page - 1, 0), size);
         return ResponseEntity.ok(userAttemptService.getAttemptHistoryForCurrentUser(pageable));
+    }
+    @GetMapping("/attempts-count")
+    public ResponseEntity<AttemptsCountResponse> getAttemptsCount() {
+        return ResponseEntity.ok(userAttemptService.getAttemptsCount());
     }
 }

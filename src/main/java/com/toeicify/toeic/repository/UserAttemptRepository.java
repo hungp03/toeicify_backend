@@ -76,4 +76,10 @@ public interface UserAttemptRepository extends JpaRepository<UserAttempt, Long> 
     @Query(value = "SELECT find_attempt_history(:userId, :limit)", nativeQuery = true)
     String findAttemptHistoryFirstPage(@Param("userId") Long userId,
                                        @Param("limit") int limit);
+
+    long countByEndTimeIsNotNull();
+
+    // Phân tách: Full test / Luyện tập (đã hoàn thành)
+    long countByIsFullTestTrueAndEndTimeIsNotNull();
+    long countByIsFullTestFalseAndEndTimeIsNotNull();
 }
