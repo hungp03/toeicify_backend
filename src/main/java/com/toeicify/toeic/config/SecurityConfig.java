@@ -49,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/exams/search").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/exams").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/exams/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/exams/{id}/status").hasRole("ADMIN")
                         // Exam category
                         .requestMatchers(HttpMethod.GET, "/api/exam-categories", "/api/exam-categories/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/exam-categories").hasRole("ADMIN")

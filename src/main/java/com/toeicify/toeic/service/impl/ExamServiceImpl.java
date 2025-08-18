@@ -19,11 +19,15 @@ import com.toeicify.toeic.service.ExamService;
 import com.toeicify.toeic.service.UserService;
 import com.toeicify.toeic.util.SecurityUtil;
 import com.toeicify.toeic.util.enums.ExamStatus;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.*;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -81,16 +85,12 @@ public class ExamServiceImpl implements ExamService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "toeicExam",  key = "#id")
+    @Cacheable(
+            value = "toeicExam",
+            key = "#id",
+            unless = "#result == null || #result.status() != 'PUBLIC'"
+    )
     public ExamResponse getExamById(Long id) {
-        Exam exam = examRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
-        return examMapper.toExamResponse(exam);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ExamResponse getExamByIdFresh(Long id) {
         Exam exam = examRepository.findWithPartsByExamId(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
         int total = exam.getExamParts() == null ? 0 :
@@ -98,14 +98,12 @@ public class ExamServiceImpl implements ExamService {
                         .map(p -> p.getQuestionCount() == null ? 0 : p.getQuestionCount())
                         .mapToInt(Integer::intValue)
                         .sum();
-
-        // Map sang DTO
         ExamResponse dto = examMapper.toExamResponse(exam);
         return new ExamResponse(
                 dto.examId(),
                 dto.examName(),
                 dto.examDescription(),
-                total,                             // <- override totalQuestions
+                total,
                 dto.listeningAudioUrl(),
                 dto.status(),
                 dto.createdAt(),
@@ -116,23 +114,26 @@ public class ExamServiceImpl implements ExamService {
                 dto.examParts()
         );
     }
+
     @Transactional(readOnly = true)
     @Override
     public PaginationResponse searchExams(String keyword, Long categoryId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<ExamListItemResponse> pageResult = examRepository.searchExams(keyword, categoryId, pageable);
+        Page<ExamListItemResponse> pageResult = examRepository.searchExams(keyword, categoryId, pageable, false);
         return PaginationResponse.from(pageResult, pageable);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PaginationResponse searchExamsForClient(String keyword, Long categoryId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<ExamListItemResponse> pageResult = examRepository.searchExamsForClient(keyword, categoryId, pageable);
+        Page<ExamListItemResponse> pageResult = examRepository.searchExams(keyword, categoryId, pageable, true);
         return PaginationResponse.from(pageResult, pageable);
     }
 
     @Transactional
     @Override
+    @CacheEvict(value = "toeicExam", key = "#id")
     public ExamResponse updateExam(Long id, ExamRequest request) {
         Exam exam = examRepository.findWithPartsByExamId(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
@@ -200,6 +201,7 @@ public class ExamServiceImpl implements ExamService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "toeicExam", key = "#id")
     public ExamResponse updateStatus(Long id, ExamStatus newStatus) {
         Exam exam = examRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found with id: " + id));
@@ -251,8 +253,6 @@ public class ExamServiceImpl implements ExamService {
     // Kiểm tra exam đã đủ số lượng câu hỏi cần thiết chưa
     public boolean isAllExistingPartsCompleted(Exam exam) {
         if (exam.getExamParts() == null || exam.getExamParts().isEmpty()) return false;
-
-        // Quy định số câu hỏi tối thiểu cho từng Part theo chuẩn TOEIC
         Map<Integer, Integer> requiredPerPart = Map.of(
                 1, 6,
                 2, 25,
@@ -269,14 +269,14 @@ public class ExamServiceImpl implements ExamService {
 
             Integer requiredCount = requiredPerPart.get(partNumber);
             if (requiredCount == null) {
-                continue; // Bỏ qua nếu không xác định yêu cầu cho Part đó
+                continue;
             }
 
             if (actualCount < requiredCount) {
-                return false; // Ít hơn yêu cầu
+                return false;
             }
         }
 
-        return true; // Tất cả Part hiện có đều đủ số lượng
+        return true;
     }
 }

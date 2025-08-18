@@ -39,19 +39,12 @@ public interface QuestionGroupRepository extends JpaRepository<QuestionGroup, Lo
             "WHERE (:partId IS NULL OR qg.part.partId = :partId)")
     Page<QuestionGroupListItemResponse> searchQuestionGroups(@Param("partId") Long partId, Pageable pageable);
 
-    long countByPartPartId(Long partId);
-
-    @Query("SELECT DISTINCT qg FROM QuestionGroup qg " +
-            "LEFT JOIN FETCH qg.questions q " +
-            "WHERE (:partId IS NULL OR qg.part.partId = :partId)")
-    Page<QuestionGroup> findByPartIdWithQuestions(@Param("partId") Long partId, Pageable pageable);
-
     @EntityGraph(attributePaths = { "part", "questions" })
     Optional<QuestionGroup> findWithGraphByGroupId(Long id);
 
-    @Query("SELECT DISTINCT qg FROM QuestionGroup qg " +
-            "LEFT JOIN FETCH qg.questions " +
-            "WHERE qg.part.partId = :partId " +
-            "ORDER BY qg.groupId")
+    @EntityGraph(attributePaths = {"questions"})
+    @Query("SELECT qg FROM QuestionGroup qg WHERE qg.part.partId = :partId ORDER BY qg.groupId")
     List<QuestionGroup> findByPartPartIdWithQuestions(@Param("partId") Long partId);
+
+
 }

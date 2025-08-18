@@ -27,9 +27,6 @@ public interface ExamRepository extends JpaRepository<Exam, Long>, ExamRepositor
 
     long countByExamCategory_CategoryId(Long categoryId);
 
-    @Query("SELECT COUNT(e) FROM Exam e WHERE e.createdAt BETWEEN :start AND :end")
-    long countByCreatedAtBetween(@Param("start") Instant start, @Param("end") Instant end);
-
     List<Exam> findTop1ByOrderByCreatedAtDesc();
 
     @Query(value = """
