@@ -202,37 +202,47 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
 
+//    @Override
+//    @Transactional(readOnly = true)
+//    public List<QuestionGroupResponse> getQuestionGroupsByPartId(Long partId) {
+//        // Step 1: Get QuestionGroups with Questions
+//        List<QuestionGroup> groups = questionGroupRepository.findByPartPartIdWithQuestions(partId);
+//
+//        // Step 2: Get all Questions with Options for this part
+//        List<Question> allQuestionsWithOptions = groups.stream()
+//                .flatMap(group -> questionRepository.findByGroupGroupIdWithOptions(group.getGroupId()).stream())
+//                .toList();
+//
+//        // Step 3: Group options by question ID
+//        Map<Long, List<QuestionOption>> optionsByQuestionId = allQuestionsWithOptions.stream()
+//                .collect(Collectors.toMap(
+//                        Question::getQuestionId,
+//                        q -> q.getOptions() != null ? q.getOptions() : new ArrayList<>()
+//                ));
+//
+//        // Step 4: Set options to questions
+//        groups.forEach(group -> {
+//            if (group.getQuestions() != null) {
+//                group.getQuestions().forEach(question -> {
+//                    question.setOptions(optionsByQuestionId.get(question.getQuestionId()));
+//                });
+//            }
+//        });
+//
+//        return groups.stream()
+//                .map(questionMapper::toQuestionGroupResponse)
+//                .collect(Collectors.toList());
+//    }
+
     @Override
     @Transactional(readOnly = true)
     public List<QuestionGroupResponse> getQuestionGroupsByPartId(Long partId) {
-        // Step 1: Get QuestionGroups with Questions
         List<QuestionGroup> groups = questionGroupRepository.findByPartPartIdWithQuestions(partId);
-
-        // Step 2: Get all Questions with Options for this part
-        List<Question> allQuestionsWithOptions = groups.stream()
-                .flatMap(group -> questionRepository.findByGroupGroupIdWithOptions(group.getGroupId()).stream())
-                .toList();
-
-        // Step 3: Group options by question ID
-        Map<Long, List<QuestionOption>> optionsByQuestionId = allQuestionsWithOptions.stream()
-                .collect(Collectors.toMap(
-                        Question::getQuestionId,
-                        q -> q.getOptions() != null ? q.getOptions() : new ArrayList<>()
-                ));
-
-        // Step 4: Set options to questions
-        groups.forEach(group -> {
-            if (group.getQuestions() != null) {
-                group.getQuestions().forEach(question -> {
-                    question.setOptions(optionsByQuestionId.get(question.getQuestionId()));
-                });
-            }
-        });
-
         return groups.stream()
                 .map(questionMapper::toQuestionGroupResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
+
 
     @Override
     @Cacheable(

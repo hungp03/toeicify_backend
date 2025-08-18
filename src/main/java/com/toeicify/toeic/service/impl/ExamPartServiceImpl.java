@@ -27,12 +27,10 @@ public class ExamPartServiceImpl implements ExamPartService {
     private final ExamPartRepository examPartRepository;
     private final ExamRepository examRepository;
     private final QuestionRepository questionRepository;
-    private final QuestionGroupRepository questionGroupRepository;
 
     @Transactional
     @Override
     public void deleteExamPartById(Long partId) {
-        // 1) Khóa bản ghi để chống concurrent updates
         ExamPart part = examPartRepository.findByIdForUpdate(partId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam part not found"));
 

@@ -26,7 +26,7 @@ public class ExamRepositoryImpl implements ExamRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<ExamListItemResponse> searchExams(String keyword, Long categoryId, Pageable pageable) {
+    public Page<ExamListItemResponse> searchExams(String keyword, Long categoryId, Pageable pageable, boolean onlyPublic) {
         QExam exam = QExam.exam;
         QExamCategory category = QExamCategory.examCategory;
         QExamPart part = QExamPart.examPart;
@@ -40,6 +40,7 @@ public class ExamRepositoryImpl implements ExamRepositoryCustom {
         }
 
         BooleanExpression categoryCondition = categoryId != null ? category.categoryId.eq(categoryId) : null;
+        BooleanExpression statusCondition = onlyPublic ? exam.status.eq(ExamStatus.PUBLIC) : null;
 
         List<ExamListItemResponse> content = queryFactory
                 .select(Projections.constructor(ExamListItemResponse.class,
@@ -57,7 +58,7 @@ public class ExamRepositoryImpl implements ExamRepositoryCustom {
                 ))
                 .from(exam)
                 .leftJoin(exam.examCategory, category)
-                .where(keywordCondition, categoryCondition)
+                .where(keywordCondition, categoryCondition, statusCondition)
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .orderBy(exam.createdAt.desc())
@@ -73,56 +74,4 @@ public class ExamRepositoryImpl implements ExamRepositoryCustom {
 
         return new PageImpl<>(content, pageable, total != null ? total : 0L);
     }
-    @Override
-    public Page<ExamListItemResponse> searchExamsForClient(String keyword, Long categoryId, Pageable pageable) {
-        QExam exam = QExam.exam;
-        QExamCategory category = QExamCategory.examCategory;
-        QExamPart part = QExamPart.examPart;
-
-        // Filter
-        BooleanExpression keywordCondition = null;
-        if (StringUtils.hasText(keyword)) {
-            keywordCondition = exam.examName.containsIgnoreCase(keyword)
-                    .or(exam.examDescription.containsIgnoreCase(keyword))
-                    .or(category.categoryName.containsIgnoreCase(keyword));
-        }
-
-        BooleanExpression categoryCondition = categoryId != null ? category.categoryId.eq(categoryId) : null;
-
-        // Thêm điều kiện status = PUBLIC
-        BooleanExpression statusCondition = exam.status.eq(ExamStatus.valueOf("PUBLIC"));
-
-        List<ExamListItemResponse> content = queryFactory
-                .select(Projections.constructor(ExamListItemResponse.class,
-                        exam.examId,
-                        exam.examName,
-                        exam.examDescription,
-                        exam.totalQuestions,
-                        category.categoryName,
-                        // Subquery count parts
-                        JPAExpressions.select(part.count().intValue())
-                                .from(part)
-                                .where(part.exam.eq(exam)),
-                        exam.createdAt,
-                        exam.status.stringValue()
-                ))
-                .from(exam)
-                .leftJoin(exam.examCategory, category)
-                .where(keywordCondition, categoryCondition, statusCondition) // thêm vào đây
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .orderBy(exam.createdAt.desc())
-                .fetch();
-
-        // Count
-        Long total = queryFactory
-                .select(exam.count())
-                .from(exam)
-                .leftJoin(exam.examCategory, category)
-                .where(keywordCondition, categoryCondition, statusCondition) // và ở đây nữa
-                .fetchOne();
-
-        return new PageImpl<>(content, pageable, total != null ? total : 0L);
-    }
-
 }

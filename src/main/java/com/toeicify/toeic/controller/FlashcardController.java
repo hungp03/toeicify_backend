@@ -127,5 +127,4 @@ public class FlashcardController {
         flashcardListService.deleteFlashcardList(listId);
         return ResponseEntity.ok().build();
     }
-
 }

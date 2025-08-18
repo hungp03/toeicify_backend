@@ -8,7 +8,6 @@ import org.springframework.data.domain.Pageable;
  * Created by hungpham on 7/20/2025
  */
 public interface ExamRepositoryCustom {
-    Page<ExamListItemResponse> searchExams(String keyword, Long categoryId, Pageable pageable);
-    Page<ExamListItemResponse> searchExamsForClient(String keyword, Long categoryId, Pageable pageable);
+    Page<ExamListItemResponse> searchExams(String keyword, Long categoryId, Pageable pageable, boolean onlyPublic);
 }
 
