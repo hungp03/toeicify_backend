@@ -26,6 +26,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,6 +95,16 @@ public class ExamServiceImpl implements ExamService {
     public ExamResponse getExamById(Long id) {
         Exam exam = examRepository.findWithPartsByExamId(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String role = authentication != null && authentication.getAuthorities() != null
+                ? authentication.getAuthorities().iterator().next().getAuthority()
+                : "GUEST";
+
+        if (!"ROLE_ADMIN".equals(role) && !"PUBLIC".equals(exam.getStatus())) {
+            throw new ResourceNotFoundException("Exam not found");
+        }
+
         int total = exam.getExamParts() == null ? 0 :
                 exam.getExamParts().stream()
                         .map(p -> p.getQuestionCount() == null ? 0 : p.getQuestionCount())
