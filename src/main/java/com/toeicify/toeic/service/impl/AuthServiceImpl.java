@@ -48,6 +48,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final IdentifyCodeService identifyCodeService;
     private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     @Override
     public AuthResponse login(AuthRequest request) {
@@ -60,6 +61,7 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtService.generateAccessToken(userDetails);
         String refreshToken = jwtService.generateRefreshToken(userDetails);
         UserLoginResponse userLoginResponse = UserLoginResponse.from(currentUser, accessToken);
+        notificationService.saveNotification(currentUser.getUserId(), "Thông báo", "Bạn đang đăng nhập ở nơi khác, nếu không phải bạn, vui lòng thực hiện các thao tác bảo mật");
         return AuthResponse.of(userLoginResponse, refreshToken);
     }
 

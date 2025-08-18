@@ -16,28 +16,14 @@
 #EXPOSE 8080
 #ENTRYPOINT ["java", "-jar", "app.jar"]
 
-
-# ===== Stage 1: Build JAR =====
-FROM maven:3.9.6-eclipse-temurin-21 AS build
+FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
 
-# Cache dependencies
-COPY pom.xml .
-RUN mvn -B -q dependency:go-offline
+COPY target/toeic.jar app.jar
 
-# Build JAR
-COPY src ./src
-RUN mvn -B -DskipTests clean package
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
 
-# ===== Stage 2: Lite runtime =====
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
+EXPOSE 8888
+ENTRYPOINT ["java", "-jar", "app.jar"]
 
-# Copy JAR from build stage
-COPY --from=build /app/target/toeic.jar app.jar
-
-# JVM options
-ENV JAVA_OPTS="-Xmx256m -Xms64m -XX:+UseSerialGC"
-
-EXPOSE 8080
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

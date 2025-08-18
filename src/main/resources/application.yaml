@@ -83,9 +83,9 @@ server:
 
 springdoc:
   api-docs:
-    enabled: true
+    enabled: false
   swagger-ui:
-    enabled: true
+    enabled: false
     url: /v3/api-docs
 
 app:
