@@ -180,6 +180,11 @@
             <classifier>jakarta</classifier>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.5.0</version>
+        </dependency>
     </dependencies>
 
     <build>

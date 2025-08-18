@@ -45,6 +45,7 @@ public class UserAttemptServiceImpl implements UserAttemptService {
     private final UserAttemptRepository userAttemptRepository;
     private final ObjectMapper objectMapper;
     private final ExamValidator examValidator;
+    private final NotificationServiceImpl notificationService;
 
     @Override
     public ExamSubmissionResponse submitExam(SubmitExamRequest request) throws JsonProcessingException {
@@ -98,6 +99,7 @@ public class UserAttemptServiceImpl implements UserAttemptService {
 
         List<PartDetailResponse> partsDetail = getPartsDetailByAttempt(attemptId);
 
+        notificationService.sendNotification(userId, "Hoàn thành bài thi", "Chúc mừng bạn đã hoàn thành bài thi");
         return ExamSubmissionResponse.builder()
                 .attemptId(attemptId)
                 .totalScore(totalScore)

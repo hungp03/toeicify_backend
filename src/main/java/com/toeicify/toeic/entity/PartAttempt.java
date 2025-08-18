@@ -10,7 +10,8 @@ import java.time.Instant;
 @Entity
 @Table(name = "part_attempts",
         uniqueConstraints = @UniqueConstraint(columnNames = {"attempt_id", "part_id"}))
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
