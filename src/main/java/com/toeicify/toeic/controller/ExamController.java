@@ -40,6 +40,12 @@ public class ExamController {
         return ResponseEntity.ok(examService.getExamById(id));
     }
 
+    @GetMapping("/public/{id}")
+    @ApiMessage("Get public exam by id")
+    public ResponseEntity<ExamResponse> getPublicExamById(@PathVariable Long id) {
+        return ResponseEntity.ok(examService.getPublicExamById(id));
+    }
+
     @PutMapping("/{id}")
     @ApiMessage("Update exam")
     public ResponseEntity<ExamResponse> updateExam(

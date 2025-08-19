@@ -25,6 +25,10 @@ public interface ExamRepository extends JpaRepository<Exam, Long>, ExamRepositor
     @EntityGraph(attributePaths = "examParts")
     Optional<Exam> findWithPartsByExamId(Long examId);
 
+    @EntityGraph(attributePaths = "examParts")
+    @Query("SELECT e FROM Exam e WHERE e.examId = :examId AND e.status = 'PUBLIC'")
+    Optional<Exam> findPublicExamByIdPublic(Long examId);
+
     long countByExamCategory_CategoryId(Long categoryId);
 
     List<Exam> findTop1ByOrderByCreatedAtDesc();
