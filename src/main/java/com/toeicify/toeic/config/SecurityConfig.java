@@ -77,6 +77,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/attempts/attempts-count").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/exam-parts/missing/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/exam-parts/**").hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.GET,"/api/feedbacks/all/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/feedbacks/{id}").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,"/api/feedbacks").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/feedbacks/user").authenticated()
+                        .requestMatchers(HttpMethod.DELETE,"/api/feedbacks/{id}").authenticated()
+
                         .anyRequest().authenticated()
                 )
                 .formLogin(AbstractHttpConfigurer::disable)

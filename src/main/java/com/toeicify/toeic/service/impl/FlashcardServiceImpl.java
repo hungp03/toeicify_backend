@@ -75,14 +75,14 @@ public class FlashcardServiceImpl implements FlashcardService {
         Long userId = SecurityUtil.getCurrentUserId();
         User user = userService.findById(userId);
 
-        if (flashcardListRepository.existsByListNameAndUser_UserId(request.getListName(), userId)) {
+        if (flashcardListRepository.existsByListNameAndUser_UserId(request.listName(), userId)) {
             throw new ResourceAlreadyExistsException("List name already exists");
         }
 
 
         FlashcardList list = FlashcardList.builder()
-                .listName(request.getListName())
-                .description(request.getDescription())
+                .listName(request.listName())
+                .description(request.description())
                 .user(user)
                 .isPublic(false)
                 .createdAt(Instant.now())
@@ -133,9 +133,9 @@ public class FlashcardServiceImpl implements FlashcardService {
         FlashcardList list = getOwnedList(listId, userId);
 
         validateFlashcardAddExists(listId,
-                request.getFrontText().trim(),
-                request.getBackText().trim(),
-                request.getCategory().trim());
+                request.frontText().trim(),
+                request.backText().trim(),
+                request.category().trim());
 
         Flashcard card = buildFlashcard(list, request);
         flashcardRepository.save(card);
@@ -146,9 +146,9 @@ public class FlashcardServiceImpl implements FlashcardService {
         Long userId = SecurityUtil.getCurrentUserId();
         getOwnedList(listId, userId);
         Flashcard card = getCardInListOrThrow(cardId, listId);
-        if (card.getFrontText().equals(request.getFrontText()) &&
-                card.getBackText().equals(request.getBackText()) &&
-                card.getCategory().equals(request.getCategory())) {
+        if (card.getFrontText().equals(request.frontText()) &&
+                card.getBackText().equals(request.backText()) &&
+                card.getCategory().equals(request.category())) {
             throw new ResourceInvalidException("No changes detected in the update request.");
         }
         validateFlashcardUpdateExists(listId,cardId,request);
@@ -182,13 +182,13 @@ public class FlashcardServiceImpl implements FlashcardService {
         FlashcardList list = flashcardListRepository.findByListIdAndUser_UserId(listId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("List not found or not yours"));
 
-        if (!list.getListName().equals(request.getListName())
-                && flashcardListRepository.existsByListNameAndUser_UserId(request.getListName(), userId)) {
+        if (!list.getListName().equals(request.listName())
+                && flashcardListRepository.existsByListNameAndUser_UserId(request.listName(), userId)) {
             throw new ResourceAlreadyExistsException("List name already exists");
         }
-        validateDuplicateFlashcards(request.getFlashcards());
+        validateDuplicateFlashcards(request.flashcards());
         updateListBasicInfo(list, request);
-        replaceFlashcards(list, request.getFlashcards());
+        replaceFlashcards(list, request.flashcards());
 
         flashcardListRepository.save(list);
     }
@@ -247,9 +247,9 @@ public class FlashcardServiceImpl implements FlashcardService {
     private void validateFlashcardUpdateExists(Long listId, Long cardId, FlashcardCreateRequest request){
         boolean exists = flashcardRepository.existsByList_ListIdAndFrontTextAndBackTextAndCategoryAndCardIdNot(
                 listId,
-                request.getFrontText().trim(),
-                request.getBackText().trim(),
-                request.getCategory().trim(),
+                request.frontText().trim(),
+                request.backText().trim(),
+                request.category().trim(),
                 cardId
         );
 
@@ -264,11 +264,11 @@ public class FlashcardServiceImpl implements FlashcardService {
     private void validateDuplicateFlashcards(List<FlashcardCreateRequest> flashcards) {
         Set<String> uniqueCards = new HashSet<>();
         for (FlashcardCreateRequest card : flashcards) {
-            String key = card.getFrontText().trim().toLowerCase() +
-                    "|" + card.getBackText().trim().toLowerCase() +
-                    "|" + card.getCategory().trim().toLowerCase();
+            String key = card.frontText().trim().toLowerCase() +
+                    "|" + card.backText().trim().toLowerCase() +
+                    "|" + card.category().trim().toLowerCase();
             if (!uniqueCards.add(key)) {
-                throw new ResourceInvalidException("Duplicate flashcard detected: " + card.getFrontText());
+                throw new ResourceInvalidException("Duplicate flashcard detected: " + card.frontText());
             }
         }
     }
@@ -305,22 +305,22 @@ public class FlashcardServiceImpl implements FlashcardService {
     private Flashcard buildFlashcard(FlashcardList list, FlashcardCreateRequest request) {
         return Flashcard.builder()
                 .list(list)
-                .frontText(request.getFrontText())
-                .backText(request.getBackText())
-                .category(request.getCategory())
+                .frontText(request.frontText())
+                .backText(request.backText())
+                .category(request.category())
                 .createdAt(Instant.now())
                 .build();
     }
 
     private void updateFlashcardFields(Flashcard card, FlashcardCreateRequest request) {
-        card.setFrontText(request.getFrontText());
-        card.setBackText(request.getBackText());
-        card.setCategory(request.getCategory());
+        card.setFrontText(request.frontText());
+        card.setBackText(request.backText());
+        card.setCategory(request.category());
     }
 
     private void updateListBasicInfo(FlashcardList list, FlashcardListUpdateRequest request) {
-        list.setListName(request.getListName());
-        list.setDescription(request.getDescription());
+        list.setListName(request.listName());
+        list.setDescription(request.description());
     }
 
     private void replaceFlashcards(FlashcardList list, List<FlashcardCreateRequest> flashcardRequests) {

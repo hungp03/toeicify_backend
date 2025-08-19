@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Created by hungpham on 7/11/2025
@@ -28,6 +29,23 @@ public class MediaController {
         String key = mediaService.uploadFile(file, folder);
         return ResponseEntity.ok(key);
     }
+
+    @PostMapping(
+            value = "/upload/feedback",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<List<String>> uploadFeedbackAttachments(
+            @RequestParam("files") List<MultipartFile> files
+    ) throws IOException {
+        if (files == null || files.isEmpty()) {
+            return ResponseEntity.badRequest().body(List.of());
+        }
+
+        List<String> urls = mediaService.uploadFiles(files, "feedbacks");
+        return ResponseEntity.ok(urls);
+    }
+
 
 //    @GetMapping("/signed-url")
 //    @ApiMessage("Generate public url")

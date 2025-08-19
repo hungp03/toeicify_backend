@@ -5,29 +5,27 @@ package com.toeicify.toeic.dto.response.exam;
  */
 import java.time.LocalDateTime;
 import java.util.List;
-import lombok.*;
+import lombok.Builder;
 
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ExamSubmissionResponse {
-    private Long attemptId;
-    private Integer totalScore;
-    private Integer listeningScore;
-    private Integer readingScore;
-    private Double completionTimeMinutes;
-    private LocalDateTime submittedAt;
-    private Integer totalQuestionsAnswered;
-    private Integer totalReadingInExam;
-    private Integer totalListeningInExam;
-    private Integer listeningQuestionsAnswered;
-    private Integer readingQuestionsAnswered;
-    private Integer totalQuestions;
-    private Integer totalListeningCorrect;
-    private Integer totalReadingCorrect;
-    private Integer totalCorrectAnswers;
-    private List<PartDetailResponse> partsDetail;
-    private ExamSummaryResponse examSummary;
-}
+public record ExamSubmissionResponse(
+        Long attemptId,
+        Integer totalScore,
+        Integer listeningScore,
+        Integer readingScore,
+        Double completionTimeMinutes,
+        LocalDateTime submittedAt,
+        Integer totalQuestionsAnswered,
+        Integer totalReadingInExam,
+        Integer totalListeningInExam,
+        Integer listeningQuestionsAnswered,
+        Integer readingQuestionsAnswered,
+        Integer totalQuestions,
+        Integer totalListeningCorrect,
+        Integer totalReadingCorrect,
+        Integer totalCorrectAnswers,
+        List<PartDetailResponse> partsDetail,
+        ExamSummaryResponse examSummary
+) {}
+
 

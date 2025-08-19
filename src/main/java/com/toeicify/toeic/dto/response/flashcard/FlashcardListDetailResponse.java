@@ -1,35 +1,27 @@
 package com.toeicify.toeic.dto.response.flashcard;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
 
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class FlashcardListDetailResponse {
-    private Long listId;
-    private String listName;
-    private String description;
-    private Instant createdAt;
-    private Boolean isPublic;
-    private Boolean isOwner;
-    private Boolean inProgress;
-
-    private List<FlashcardItem> flashcards;
-
-    @Data
+public record FlashcardListDetailResponse(
+        Long listId,
+        String listName,
+        String description,
+        Instant createdAt,
+        Boolean isPublic,
+        Boolean isOwner,
+        Boolean inProgress,
+        List<FlashcardItem> flashcards
+) {
     @Builder
-    public static class FlashcardItem {
-        private Long cardId;
-        private String frontText;
-        private String backText;
-        private String category;
-        private Instant createdAt;
-    }
+    public record FlashcardItem(
+            Long cardId,
+            String frontText,
+            String backText,
+            String category,
+            Instant createdAt
+    ) {}
 }

@@ -1,17 +1,15 @@
 package com.toeicify.toeic.dto.response.exam;
-import lombok.*;
+import lombok.Builder;
 /**
  * Created by hungpham on 8/9/2025
  */
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class AnswerDetailResponse {
-    private Long questionId;
-    private Integer questionNumber;
-    private String userAnswer;
-    private String correctAnswer;
-    private Boolean isCorrect;
-    private Integer partNumber;
-}
+public record AnswerDetailResponse(
+        Long questionId,
+        Integer questionNumber,
+        String userAnswer,
+        String correctAnswer,
+        Boolean isCorrect,
+        Integer partNumber
+) {}
+

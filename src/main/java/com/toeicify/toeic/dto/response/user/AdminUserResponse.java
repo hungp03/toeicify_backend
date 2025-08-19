@@ -1,7 +1,5 @@
 package com.toeicify.toeic.dto.response.user;
 
-import com.toeicify.toeic.entity.User;
-
 import java.time.Instant;
 
 public record AdminUserResponse(
