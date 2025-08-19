@@ -2,6 +2,7 @@ package com.toeicify.toeic.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.toeicify.toeic.dto.request.exam.SubmitExamRequest;
+import com.toeicify.toeic.dto.response.attempt.AttemptsCountResponse;
 import com.toeicify.toeic.dto.response.stats.ChartPracticePointData;
 import com.toeicify.toeic.dto.response.exam.ExamResultDetailResponse;
 import com.toeicify.toeic.dto.response.exam.ExamSubmissionResponse;
@@ -23,4 +24,6 @@ public interface UserAttemptService {
     UserProgressResponse getUserProgress(int chartLimit) throws JsonProcessingException;
 
     public PaginationResponse getAttemptHistoryForCurrentUser(Pageable pageable);
+
+    public AttemptsCountResponse getAttemptsCount();
 }

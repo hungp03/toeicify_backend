@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toeicify.toeic.dto.request.exam.SubmitExamRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.attempt.AttemptItemResponse;
+import com.toeicify.toeic.dto.response.attempt.AttemptsCountResponse;
 import com.toeicify.toeic.dto.response.attempt.ExamHistoryResponse;
 import com.toeicify.toeic.dto.response.exam.*;
 import com.toeicify.toeic.dto.response.stats.ChartPracticePointData;
@@ -239,6 +240,15 @@ public class UserAttemptServiceImpl implements UserAttemptService {
         Page<AttemptHistoryRow> page = new org.springframework.data.domain.PageImpl<>(content, pageable, total);
 
         return PaginationResponse.from(page, pageable);
+    }
+
+    @Override
+    public AttemptsCountResponse getAttemptsCount() {
+        long totalDone   = userAttemptRepository.countByEndTimeIsNotNull();
+        long fullDone    = userAttemptRepository.countByIsFullTestTrueAndEndTimeIsNotNull();
+        long practiceDone= userAttemptRepository.countByIsFullTestFalseAndEndTimeIsNotNull();
+
+        return new AttemptsCountResponse(totalDone, fullDone, practiceDone);
     }
 
 
