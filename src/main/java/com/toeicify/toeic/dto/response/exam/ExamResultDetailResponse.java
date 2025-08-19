@@ -1,25 +1,24 @@
 package com.toeicify.toeic.dto.response.exam;
 
+import lombok.Builder;
+
 import java.time.LocalDateTime;
 import java.util.List;
-import lombok.*;
 /**
  * Created by hungpham on 8/9/2025
  */
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ExamResultDetailResponse {
-    private Long attemptId;
-    private Boolean isFullTest;
-    private Integer totalScore;
-    private Integer listeningScore;
-    private Integer readingScore;
-    private Double completionTimeMinutes;
-    private LocalDateTime startTime;
-    private LocalDateTime submittedAt;
-    private List<PartDetailResponse> partsDetail;
-    private List<AnswerDetailResponse> answersDetail;
-    private ExamSummaryResponse examSummary;
-}
+public record ExamResultDetailResponse(
+        Long attemptId,
+        Boolean isFullTest,
+        Integer totalScore,
+        Integer listeningScore,
+        Integer readingScore,
+        Double completionTimeMinutes,
+        LocalDateTime startTime,
+        LocalDateTime submittedAt,
+        List<PartDetailResponse> partsDetail,
+        List<AnswerDetailResponse> answersDetail,
+        ExamSummaryResponse examSummary
+) {}
+

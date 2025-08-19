@@ -1,16 +1,16 @@
 package com.toeicify.toeic.dto.response.exam;
-import lombok.*;
+
+import lombok.Builder;
+
 /**
  * Created by hungpham on 8/9/2025
  */
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class PartDetailResponse {
-    private Integer partNumber;
-    private String partName;
-    private Integer correctAnswers;
-    private Integer totalQuestions;
-    private Double accuracyPercent;
-}
+public record PartDetailResponse(
+        Integer partNumber,
+        String partName,
+        Integer correctAnswers,
+        Integer totalQuestions,
+        Double accuracyPercent
+) {}
+

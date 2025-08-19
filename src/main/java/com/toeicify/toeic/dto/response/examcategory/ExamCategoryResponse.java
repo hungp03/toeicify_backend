@@ -19,5 +19,5 @@ public class ExamCategoryResponse implements Serializable {
     private Long categoryId;
     private String categoryName;
     private String description;
-    private Long examCount; // Thêm trường này
+    private Long examCount;
 }

@@ -1,48 +1,38 @@
 package com.toeicify.toeic.dto.response.stats;
 
-/**
- * Created by hungpham on 8/11/2025
- */
 import lombok.Builder;
-import lombok.Data;
-
 import java.util.List;
 
-@Data
 @Builder
-public class AdminDashboardResponse {
-    private List<StatItem> stats;
-    private List<MonthlyDataItem> monthlyData;
-    private List<WeeklyGrowthItem> weeklyGrowth;
-    private List<ActivityItem> recentActivities;
-
-    @Data
+public record AdminDashboardResponse(
+        List<StatItem> stats,
+        List<MonthlyDataItem> monthlyData,
+        List<WeeklyGrowthItem> weeklyGrowth,
+        List<ActivityItem> recentActivities
+) {
     @Builder
-    public static class StatItem {
-        private String title;
-        private String value;
-    }
+    public record StatItem(
+            String title,
+            String value
+    ) {}
 
-    @Data
     @Builder
-    public static class MonthlyDataItem {
-        private String name;
-        private long users;
-        private long tests;
-    }
+    public record MonthlyDataItem(
+            String name,
+            long users,
+            long tests
+    ) {}
 
-    @Data
     @Builder
-    public static class WeeklyGrowthItem {
-        private String name;
-        private long value;
-    }
+    public record WeeklyGrowthItem(
+            String name,
+            long value
+    ) {}
 
-    @Data
     @Builder
-    public static class ActivityItem {
-        private String action;
-        private String user;
-        private String time;
-    }
+    public record ActivityItem(
+            String action,
+            String user,
+            String time
+    ) {}
 }

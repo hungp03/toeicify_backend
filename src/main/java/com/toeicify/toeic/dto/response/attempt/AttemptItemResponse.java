@@ -4,18 +4,16 @@ import lombok.*;
 import java.time.Instant;
 import java.util.List;
 
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class AttemptItemResponse {
-    private Long attemptId;
-    private Boolean fullTest;
-    private List<Integer> parts;     // [1,2,4,6] nếu luyện tập nhiều part
-    private Integer correct;         // tổng đúng (sum(scorePart))
-    private Integer total;           // tổng câu (sum(expectedQuestionCount))
-    private Integer toeicScore;      // null nếu không phải full test
-    private Instant startTime;
-    private Instant endTime;
-    private Long durationSeconds;    // tiện render thời gian
-}
+public record AttemptItemResponse(
+        Long attemptId,
+        Boolean fullTest,
+        List<Integer> parts,      // [1,2,4,6] nếu luyện tập nhiều part
+        Integer correct,          // tổng đúng (sum(scorePart))
+        Integer total,            // tổng câu (sum(expectedQuestionCount))
+        Integer toeicScore,       // null nếu không phải full test
+        Instant startTime,
+        Instant endTime,
+        Long durationSeconds      // tiện render thời gian
+) {}
+

@@ -237,7 +237,7 @@ public class StatsServiceImpl implements StatsService {
                 .toList());
 
         activities = activities.stream()
-                .sorted(Comparator.comparing(a -> parseTime(a.getTime())))
+                .sorted(Comparator.comparing(a -> parseTime(a.time())))
                 .limit(4)
                 .toList();
 
