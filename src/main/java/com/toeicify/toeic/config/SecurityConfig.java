@@ -72,7 +72,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/users/{userId}/toggle-status").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.GET, "/api/stats/admin-dashboard").hasRole("ADMIN")
-
+                        .requestMatchers(HttpMethod.GET, "/api/attempts/attempts-count").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/exam-parts/missing/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/exam-parts/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
