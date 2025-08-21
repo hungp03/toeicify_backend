@@ -31,7 +31,7 @@ spring:
             jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: true
     properties:
@@ -54,9 +54,6 @@ spring:
       password: ${REDIS_PASSWORD}
       repositories:
         enabled: false
-  #  flyway:
-#    enabled: true
-#    baseline-on-migrate: true
   mail:
     username: ${MAIL_USERNAME}
     port: ${MAIL_PORT}
@@ -100,3 +97,10 @@ cloud:
   public-url: ${S3_PUBLIC_URL}
   signing:
     enabled: false
+
+gemini:
+  api:
+    key:  ${GEMINI_API_KEY}
+    model: ${GEMINI_API_MODEL}
+    base-url: ${GEMINI_API_BASE_URL}
+  system-prompt: ${GEMINI_SYSTEM_PROMPT}

@@ -7,10 +7,7 @@ import com.toeicify.toeic.dto.request.exam.SubmitExamRequest;
 import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.attempt.AttemptItemResponse;
 import com.toeicify.toeic.dto.response.attempt.AttemptsCountResponse;
-import com.toeicify.toeic.dto.response.attempt.ExamHistoryResponse;
 import com.toeicify.toeic.dto.response.exam.*;
-import com.toeicify.toeic.dto.response.stats.ChartPracticePointData;
-import com.toeicify.toeic.dto.response.stats.PracticePointResponse;
 import com.toeicify.toeic.dto.response.stats.UserProgressResponse;
 import com.toeicify.toeic.repository.UserAttemptRepository;
 import com.toeicify.toeic.service.UserAttemptService;
@@ -20,20 +17,18 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.annotations.processing.SQL;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by hungpham on 8/9/2025
@@ -184,7 +179,7 @@ public class UserAttemptServiceImpl implements UserAttemptService {
     @Override
     public PaginationResponse getAttemptHistoryForCurrentUser(Pageable pageable) {
         Long userId = SecurityUtil.getCurrentUserId();
-        int limit  = pageable.getPageSize();
+        int limit = pageable.getPageSize();
         int offset = pageable.getPageNumber() * limit;
 
         // 1) Gọi function JSON từ DB
@@ -208,14 +203,14 @@ public class UserAttemptServiceImpl implements UserAttemptService {
             throw new RuntimeException("Cannot parse attempt history JSON", e);
         }
 
-        JsonNode metaNode   = root.path("meta");
+        JsonNode metaNode = root.path("meta");
         JsonNode resultNode = root.path("result");
 
         // 3) Map JSON -> List<AttemptHistoryRow> (attempt phẳng kèm examId/examName)
         List<AttemptHistoryRow> content = new ArrayList<>();
         if (resultNode.isArray()) {
             for (JsonNode item : resultNode) {
-                long   examId   = item.path("examId").asLong();
+                long examId = item.path("examId").asLong();
                 String examName = item.path("examName").asText();
 
                 JsonNode a = item.path("attempt");
@@ -244,9 +239,9 @@ public class UserAttemptServiceImpl implements UserAttemptService {
 
     @Override
     public AttemptsCountResponse getAttemptsCount() {
-        long totalDone   = userAttemptRepository.countByEndTimeIsNotNull();
-        long fullDone    = userAttemptRepository.countByIsFullTestTrueAndEndTimeIsNotNull();
-        long practiceDone= userAttemptRepository.countByIsFullTestFalseAndEndTimeIsNotNull();
+        long totalDone = userAttemptRepository.countByEndTimeIsNotNull();
+        long fullDone = userAttemptRepository.countByIsFullTestTrueAndEndTimeIsNotNull();
+        long practiceDone = userAttemptRepository.countByIsFullTestFalseAndEndTimeIsNotNull();
 
         return new AttemptsCountResponse(totalDone, fullDone, practiceDone);
     }
@@ -270,17 +265,6 @@ public class UserAttemptServiceImpl implements UserAttemptService {
 
     private static Instant parseInstantNullable(JsonNode node) {
         return parseInstant(node);
-    }
-
-
-    // helper: chấp nhận nhiều kiểu thời gian
-    private static Instant toInstant(Object v) {
-        if (v == null) return null;
-        if (v instanceof Instant i) return i;
-        if (v instanceof java.sql.Timestamp ts) return ts.toInstant();
-        if (v instanceof java.time.OffsetDateTime odt) return odt.toInstant();
-        if (v instanceof java.time.LocalDateTime ldt) return ldt.toInstant(java.time.ZoneOffset.UTC);
-        throw new IllegalArgumentException("Unsupported temporal type: " + v.getClass());
     }
 
     @AllArgsConstructor

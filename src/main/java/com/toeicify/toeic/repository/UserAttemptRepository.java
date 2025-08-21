@@ -78,8 +78,6 @@ public interface UserAttemptRepository extends JpaRepository<UserAttempt, Long> 
                                        @Param("limit") int limit);
 
     long countByEndTimeIsNotNull();
-
-    // Phân tách: Full test / Luyện tập (đã hoàn thành)
     long countByIsFullTestTrueAndEndTimeIsNotNull();
     long countByIsFullTestFalseAndEndTimeIsNotNull();
 }
