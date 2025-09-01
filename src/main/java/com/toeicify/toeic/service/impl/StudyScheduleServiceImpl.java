@@ -7,6 +7,7 @@ import com.toeicify.toeic.dto.response.schedule.StudyScheduleResponse;
 import com.toeicify.toeic.entity.StudySchedule;
 import com.toeicify.toeic.entity.Todo;
 import com.toeicify.toeic.entity.User;
+import com.toeicify.toeic.exception.AccessDeniedException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
 import com.toeicify.toeic.mapper.StudyScheduleMapper;
 import com.toeicify.toeic.repository.StudyScheduleRepository;
@@ -57,6 +58,15 @@ public class StudyScheduleServiceImpl implements StudyScheduleService {
 
     @Override
     public StudyScheduleResponse update(Long scheduleId, UpdateStudyScheduleRequest req) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        Long ownerId = scheduleRepository.findOwnerIdByScheduleId(scheduleId);
+        if (ownerId == null) {
+            throw new ResourceNotFoundException("Schedule not found: " + scheduleId);
+        }
+        if (!ownerId.equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to update this study schedule");
+        }
+
         StudySchedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found: " + scheduleId));
         if (req.title() != null) schedule.setTitle(req.title());
@@ -97,5 +107,18 @@ public class StudyScheduleServiceImpl implements StudyScheduleService {
 
         StudySchedule saved = scheduleRepository.save(schedule);
         return mapper.toDto(saved);
+    }
+
+    @Override
+    public void delete(Long scheduleId) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        Long ownerId = scheduleRepository.findOwnerIdByScheduleId(scheduleId);
+        if (ownerId == null) {
+            throw new ResourceNotFoundException("Schedule not found: " + scheduleId);
+        }
+        if (!ownerId.equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to delete this study schedule");
+        }
+        scheduleRepository.deleteById(scheduleId);
     }
 }

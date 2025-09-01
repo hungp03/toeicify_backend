@@ -12,6 +12,8 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
+import java.util.Objects;
+
 @RestControllerAdvice
 public class GlobalResponseHandler implements ResponseBodyAdvice<Object> {
     @Override
@@ -21,6 +23,16 @@ public class GlobalResponseHandler implements ResponseBodyAdvice<Object> {
 
     @Override
     public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType, Class<? extends HttpMessageConverter<?>> selectedConverterType, ServerHttpRequest request, ServerHttpResponse response) {
+        int statusCode = response.getHeaders().containsKey("status")
+                ? Integer.parseInt(Objects.requireNonNull(response.getHeaders().getFirst("status")))
+                : response instanceof org.springframework.http.server.ServletServerHttpResponse
+                ? ((org.springframework.http.server.ServletServerHttpResponse) response).getServletResponse().getStatus()
+                : HttpStatus.OK.value();
+
+        if (statusCode >= 400) {
+            return body;
+        }
+
         if (body instanceof String || body instanceof Resource || body instanceof byte[] || body instanceof ApiResponse<?>) {
             return body;
         }

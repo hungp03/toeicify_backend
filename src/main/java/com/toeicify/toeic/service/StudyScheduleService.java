@@ -10,4 +10,5 @@ import com.toeicify.toeic.dto.response.schedule.StudyScheduleResponse;
 public interface StudyScheduleService {
     StudyScheduleResponse create(CreateStudyScheduleRequest req);
     StudyScheduleResponse update(Long scheduleId, UpdateStudyScheduleRequest req);
+    void delete(Long scheduleId);
 }

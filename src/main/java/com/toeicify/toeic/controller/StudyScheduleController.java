@@ -29,4 +29,12 @@ public class StudyScheduleController {
             @RequestBody UpdateStudyScheduleRequest req) {
         return ResponseEntity.ok(studyScheduleService.update(id, req));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @PathVariable("id") Long id) {
+        studyScheduleService.delete(id);
+        return ResponseEntity.noContent().build(); // 204 No Content
+    }
+
 }
