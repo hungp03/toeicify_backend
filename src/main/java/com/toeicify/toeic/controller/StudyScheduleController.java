@@ -2,10 +2,12 @@ package com.toeicify.toeic.controller;
 
 import com.toeicify.toeic.dto.request.schedule.CreateStudyScheduleRequest;
 import com.toeicify.toeic.dto.request.schedule.UpdateStudyScheduleRequest;
+import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.schedule.StudyScheduleResponse;
 import com.toeicify.toeic.service.StudyScheduleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +19,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class StudyScheduleController {
     private final StudyScheduleService studyScheduleService;
+
+    @GetMapping
+    public ResponseEntity<PaginationResponse> getStudySchedules(Pageable pageable){
+        return ResponseEntity.ok(studyScheduleService.getSchedulesByUser(pageable));
+    }
 
     @PostMapping
     public ResponseEntity<StudyScheduleResponse> create(@RequestBody @Valid CreateStudyScheduleRequest req) {
@@ -36,5 +43,4 @@ public class StudyScheduleController {
         studyScheduleService.delete(id);
         return ResponseEntity.noContent().build(); // 204 No Content
     }
-
 }

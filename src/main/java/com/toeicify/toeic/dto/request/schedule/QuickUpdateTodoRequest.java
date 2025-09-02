@@ -10,8 +10,5 @@ import java.time.LocalDateTime;
 public record QuickUpdateTodoRequest(
         @Size(min = 1, max = 255, message = "taskDescription must be between 1 and 255 characters")
         String taskDescription,
-
-        LocalDateTime dueDate,
-
-        Boolean isCompleted
+        LocalDateTime dueDate
 ) {}

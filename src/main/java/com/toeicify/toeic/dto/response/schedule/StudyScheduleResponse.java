@@ -13,6 +13,6 @@ public record StudyScheduleResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         Long userId,
-        List<TodoResponse> todos
+        List<ScheduleTodoResponse> todos
 ) {}
 

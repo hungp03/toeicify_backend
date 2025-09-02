@@ -1,8 +1,14 @@
 package com.toeicify.toeic.service.impl;
 
+import com.toeicify.toeic.dto.request.schedule.CreateSingleTodoRequest;
+import com.toeicify.toeic.dto.response.schedule.ScheduleTodoResponse;
+import com.toeicify.toeic.dto.response.schedule.TodoResponse;
+import com.toeicify.toeic.entity.StudySchedule;
 import com.toeicify.toeic.entity.Todo;
 import com.toeicify.toeic.exception.AccessDeniedException;
 import com.toeicify.toeic.exception.ResourceNotFoundException;
+import com.toeicify.toeic.mapper.TodoMapper;
+import com.toeicify.toeic.repository.StudyScheduleRepository;
 import com.toeicify.toeic.repository.TodoRepository;
 import com.toeicify.toeic.service.TodoService;
 import com.toeicify.toeic.util.SecurityUtil;
@@ -18,7 +24,27 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class TodoServiceImpl implements TodoService {
+    private final StudyScheduleRepository scheduleRepository;
     private final TodoRepository todoRepository;
+    private final TodoMapper todoMapper;
+
+    @Override
+    public TodoResponse createTodo(CreateSingleTodoRequest req) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        StudySchedule schedule = scheduleRepository
+                .findByScheduleIdAndUser_UserId(req.scheduleId(), userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found"));
+
+        Todo todo = Todo.builder()
+                .taskDescription(req.taskDescription())
+                .isCompleted(false)
+                .dueDate(req.dueDate())
+                .schedule(schedule)
+                .build();
+
+        return todoMapper.toTodoResponse(todoRepository.save(todo));
+    }
+
     @Override
     @Transactional
     public void setCompleted(Long todoId, boolean completed) {
@@ -30,7 +56,7 @@ public class TodoServiceImpl implements TodoService {
     }
 
     @Override
-    public void quickUpdate(Long todoId, String description, LocalDateTime dueDate, Boolean completed) {
+    public TodoResponse quickUpdate(Long todoId, String description, LocalDateTime dueDate) {
         Long userId = SecurityUtil.getCurrentUserId();
         Long ownerId = todoRepository.findOwnerIdByTodoId(todoId);
         if (ownerId == null) {
@@ -45,9 +71,8 @@ public class TodoServiceImpl implements TodoService {
 
         if (description != null) todo.setTaskDescription(description);
         if (dueDate != null) todo.setDueDate(dueDate);
-        if (completed != null) todo.setIsCompleted(completed);
 
-        todoRepository.save(todo);
+        return todoMapper.toTodoResponse(todoRepository.save(todo));
     }
 
     @Override

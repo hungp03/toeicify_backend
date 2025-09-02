@@ -1,8 +1,13 @@
 package com.toeicify.toeic.controller;
 
+import com.toeicify.toeic.dto.request.schedule.CreateSingleTodoRequest;
 import com.toeicify.toeic.dto.request.schedule.QuickUpdateTodoRequest;
+import com.toeicify.toeic.dto.response.schedule.ScheduleTodoResponse;
+import com.toeicify.toeic.dto.response.schedule.TodoResponse;
 import com.toeicify.toeic.service.TodoService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +19,12 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class TodoController {
     private final TodoService todoService;
+
+    @PostMapping
+    public ResponseEntity<TodoResponse> createTodo(@RequestBody @Valid CreateSingleTodoRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(todoService.createTodo(request));
+    }
+
     @PatchMapping("/{id}/completion")
     public ResponseEntity<Void> setCompletion(
             @PathVariable("id") Long id,
@@ -24,12 +35,11 @@ public class TodoController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<Void> quickUpdate(
+    public ResponseEntity<TodoResponse> quickUpdate(
             @PathVariable("id") Long id,
             @RequestBody QuickUpdateTodoRequest req
     ) {
-        todoService.quickUpdate(id, req.taskDescription(), req.dueDate(), req.isCompleted());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(todoService.quickUpdate(id, req.taskDescription(), req.dueDate()));
     }
 
     @DeleteMapping("/{id}")

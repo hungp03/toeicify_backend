@@ -1,15 +1,13 @@
 package com.toeicify.toeic.dto.response.schedule;
 
+/**
+ * Created by hungpham on 8/31/2025
+ */
 import java.time.LocalDateTime;
 
-/**
- * Created by hungpham on 9/2/2025
- */
-public record TodoResponse (
-        Long scheduleId,
+public record ScheduleTodoResponse(
         Long todoId,
         String taskDescription,
         Boolean isCompleted,
         LocalDateTime dueDate
-){
-}
+) {}

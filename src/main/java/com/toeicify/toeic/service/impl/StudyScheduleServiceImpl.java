@@ -3,6 +3,7 @@ package com.toeicify.toeic.service.impl;
 import com.toeicify.toeic.dto.request.schedule.CreateStudyScheduleRequest;
 import com.toeicify.toeic.dto.request.schedule.UpdateStudyScheduleRequest;
 import com.toeicify.toeic.dto.request.schedule.UpdateTodoRequest;
+import com.toeicify.toeic.dto.response.PaginationResponse;
 import com.toeicify.toeic.dto.response.schedule.StudyScheduleResponse;
 import com.toeicify.toeic.entity.StudySchedule;
 import com.toeicify.toeic.entity.Todo;
@@ -15,7 +16,10 @@ import com.toeicify.toeic.service.StudyScheduleService;
 import com.toeicify.toeic.service.UserService;
 import com.toeicify.toeic.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -120,5 +124,13 @@ public class StudyScheduleServiceImpl implements StudyScheduleService {
             throw new AccessDeniedException("You do not have permission to delete this study schedule");
         }
         scheduleRepository.deleteById(scheduleId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaginationResponse getSchedulesByUser(Pageable pageable) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        Page<StudySchedule> studySchedulePage = scheduleRepository.findByUser_UserId(userId, pageable);
+        return PaginationResponse.from(studySchedulePage.map(mapper::toDto), pageable);
     }
 }
