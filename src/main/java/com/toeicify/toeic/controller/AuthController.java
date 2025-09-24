@@ -4,7 +4,7 @@ import com.toeicify.toeic.dto.request.auth.*;
 import com.toeicify.toeic.dto.response.auth.AuthResponse;
 import com.toeicify.toeic.dto.response.auth.OtpVerificationResponse;
 import com.toeicify.toeic.dto.response.user.UserInfoResponse;
-import com.toeicify.toeic.dto.response.user.UserLoginResponse;
+import com.toeicify.toeic.dto.response.auth.UserLoginResponse;
 import com.toeicify.toeic.service.AuthService;
 import com.toeicify.toeic.util.annotation.ApiMessage;
 import jakarta.validation.Valid;

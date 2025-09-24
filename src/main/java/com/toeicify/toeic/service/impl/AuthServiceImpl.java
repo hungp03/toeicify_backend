@@ -9,7 +9,7 @@ import com.toeicify.toeic.dto.request.auth.ResetPasswordRequest;
 import com.toeicify.toeic.dto.response.auth.AuthResponse;
 import com.toeicify.toeic.dto.response.auth.OtpVerificationResponse;
 import com.toeicify.toeic.dto.response.user.UserInfoResponse;
-import com.toeicify.toeic.dto.response.user.UserLoginResponse;
+import com.toeicify.toeic.dto.response.auth.UserLoginResponse;
 import com.toeicify.toeic.entity.User;
 import com.toeicify.toeic.exception.AccessDeniedException;
 import com.toeicify.toeic.exception.ResourceAlreadyExistsException;

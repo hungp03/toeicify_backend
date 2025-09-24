@@ -8,12 +8,12 @@ import java.util.List;
 public record AttemptItemResponse(
         Long attemptId,
         Boolean fullTest,
-        List<Integer> parts,      // [1,2,4,6] nếu luyện tập nhiều part
-        Integer correct,          // tổng đúng (sum(scorePart))
-        Integer total,            // tổng câu (sum(expectedQuestionCount))
-        Integer toeicScore,       // null nếu không phải full test
+        List<Integer> parts, // [1,2,4,6] if practicing multiple parts
+        Integer correct, // sum correct (sum(scorePart))
+        Integer total, // sum of questions (sum(expectedQuestionCount))
+        Integer toeicScore, // null if not a full test
         Instant startTime,
         Instant endTime,
-        Long durationSeconds      // tiện render thời gian
+        Long durationSeconds // convenient time rendering
 ) {}
 

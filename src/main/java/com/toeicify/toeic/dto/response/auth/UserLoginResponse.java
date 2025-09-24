@@ -1,4 +1,4 @@
-package com.toeicify.toeic.dto.response.user;
+package com.toeicify.toeic.dto.response.auth;
 
 import com.toeicify.toeic.entity.User;
 
