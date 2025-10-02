@@ -96,6 +96,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Async
+    @Transactional
     @Override
     public void markAsRead(Long notificationId) {
         notificationRepository.markAsRead(notificationId, LocalDateTime.now());
